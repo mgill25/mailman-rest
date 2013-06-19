@@ -39,4 +39,4 @@ class AbstractMailingList(AbstractBaseList):
 
 class MailingList(AbstractMailingList):
     class Meta:
-        swappable = 'MAILINGLIST_USER_MODEL'
+        swappable = 'MAILINGLIST_MODEL'
