@@ -64,7 +64,7 @@ class ListOperationParamMixin(BaseListParamSet):
     # acceptable_aliases - FieldType?
     # autoresponse_grace_period -  Timedelta
     bounces_address = models.EmailField()
-    default_member_action = models.CharField(max_length=50, default='defer')
+    default_member_action = models.CharField(max_length=50, default=u'defer')
     default_nonmember_action = models.CharField(max_length=50, default=u'hold')
     description = models.CharField(max_length=100, blank=True)
     digest_size_threshold = models.FloatField(default=30.0)
@@ -85,7 +85,7 @@ class ListOperationParamMixin(BaseListParamSet):
     web_host = models.CharField(max_length=50, default=u'')
     welcome_message_uri = models.CharField(max_length=50, default=u'mailman:///welcome.txt')
 
-    def save(self):
+    def save(self, *args, **kwargs):
         self.join_address = u'{0}-join@{1}'.format(self.list_name, self.mail_host)
         self.bounces_address = u'{0}-bounces@{1}'.format(self.list_name, self.mail_host)
         self.leave_address = u'{0}-leave@{1}'.format(self.list_name, self.mail_host)
@@ -93,7 +93,7 @@ class ListOperationParamMixin(BaseListParamSet):
         self.owner_address = u'{0}-owner@{1}'.format(self.list_name, self.mail_host)
         self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
         self.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
-
+        super(ListOperationParamMixin, self).save(*args, **kwargs)
 
 
 class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperationParamMixin):
@@ -145,7 +145,6 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin, ListP
 
     def delete_list(self, list_name, mail_host):
         pass
-
 
 
 class MailingList(AbstractMailingList):
