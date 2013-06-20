@@ -35,60 +35,70 @@ class ListPolicyParamMixin(BaseListParamSet):
     class Meta:
         abstract = True
 
-    admin_immed_notify = models.BooleanField()
-    admin_notify_mchanges = models.BooleanField()
-    archive_policy = models.CharField(max_length=50)
-    administrivia = models.BooleanField()
-    advertised = models.BooleanField()
-    allow_list_posts = models.BooleanField()
-    anonymous_list = models.BooleanField()
-    autorespond_owner = models.CharField(max_length=50, blank=True)
+    admin_immed_notify = models.BooleanField(default=True)
+    admin_notify_mchanges = models.BooleanField(default=False)
+    archive_policy = models.CharField(max_length=50, default=u'public')
+    administrivia = models.BooleanField(default=True)
+    advertised = models.BooleanField(default=True)
+    allow_list_posts = models.BooleanField(default=True)
+    anonymous_list = models.BooleanField(default=False)
+    autorespond_owner = models.CharField(max_length=50, blank=True, default=u'none')
     autoresponse_owner_text = models.TextField(blank=True)
-    autorespond_postings = models.CharField(max_length=50, blank=True)
+    autorespond_postings = models.CharField(max_length=50, blank=True, default=u'none')
     autoresponse_postings_text = models.TextField(blank=True)
-    autorespond_requests = models.CharField(max_length=50, blank=True)
+    autorespond_requests = models.CharField(max_length=50, blank=True, default=u'none')
     autoresponse_request_text = models.TextField(blank=True)
-    collapse_alternatives = models.BooleanField()
-    convert_html_to_plaintext = models.BooleanField()
-    filter_content = models.BooleanField()
-    first_strip_reply_to = models.BooleanField()
-    include_rfc2369_headers = models.BooleanField()
-    reply_goes_to_list = models.CharField(max_length=50)
-    send_welcome_message = models.BooleanField()
+    collapse_alternatives = models.BooleanField(default=True)
+    convert_html_to_plaintext = models.BooleanField(default=False)
+    filter_content = models.BooleanField(default=False)
+    first_strip_reply_to = models.BooleanField(default=False)
+    include_rfc2369_headers = models.BooleanField(default=True)
+    reply_goes_to_list = models.CharField(max_length=50, default=u'no_munging')
+    send_welcome_message = models.BooleanField(default=True)
 
 class ListOperationParamMixin(BaseListParamSet):
     """Values controlling the immediate operations of the list"""
     class Meta:
         abstract = True
+
     # acceptable_aliases - FieldType?
     # autoresponse_grace_period -  Timedelta
-
     bounces_address = models.EmailField()
-    default_member_action = models.CharField(max_length=50)
-    default_nonmember_action = models.CharField(max_length=50)
+    default_member_action = models.CharField(max_length=50, default='defer')
+    default_nonmember_action = models.CharField(max_length=50, default=u'hold')
     description = models.CharField(max_length=100, blank=True)
-    digest_size_threshold = models.FloatField()
+    digest_size_threshold = models.FloatField(default=30.0)
     http_etag = models.CharField(max_length=50)
     join_address = models.EmailField()
     leave_address = models.EmailField()
-    next_digest_number = models.IntegerField()
+    next_digest_number = models.IntegerField(default=1)
     no_reply_address = models.EmailField()
     owner_address = models.EmailField()
-    post_id = models.IntegerField()
+    post_id = models.IntegerField(default=1)
     posting_address = models.EmailField()
-    posting_pipeline = models.CharField(max_length=50)
-    reply_to_address = models.EmailField()
+    posting_pipeline = models.CharField(max_length=50, default=u'default-posting-pipeline')
+    reply_to_address = models.EmailField(blank=True)
     request_address = models.EmailField()
-    scheme = models.CharField(max_length=50)
-    volume = models.IntegerField()
-    subject_prefix = models.CharField(max_length=50, blank=True)
-    web_host = models.CharField(max_length=50)
-    welcome_message_uri = models.CharField(max_length=50, blank=True)
+    scheme = models.CharField(max_length=50, default=u'')
+    volume = models.IntegerField(default=1)
+    subject_prefix = models.CharField(max_length=50)
+    web_host = models.CharField(max_length=50, default=u'')
+    welcome_message_uri = models.CharField(max_length=50, default=u'mailman:///welcome.txt')
+
+    def save(self):
+        self.join_address = u'{0}-join@{1}'.format(self.list_name, self.mail_host)
+        self.bounces_address = u'{0}-bounces@{1}'.format(self.list_name, self.mail_host)
+        self.leave_address = u'{0}-leave@{1}'.format(self.list_name, self.mail_host)
+        self.no_reply_address = u'noreply@{0}'.format(self.mail_host)
+        self.owner_address = u'{0}-owner@{1}'.format(self.list_name, self.mail_host)
+        self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
+        self.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
+
 
 
 class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperationParamMixin):
-    last_post_at = models.DateTimeField(null=True)
-    digest_last_sent_at = models.DateTimeField(null=True)
+    last_post_at = models.DateTimeField(null=True, default=None)
+    digest_last_sent_at = models.DateTimeField(null=True, default=None)
 
     class Meta:
         abstract = True
@@ -128,6 +138,14 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin, ListP
 
     class Meta:
         abstract = True
+
+    def create_list(self, list_name, mail_host):
+        # XXX: In Postorius, lists are created on Domains.
+        pass
+
+    def delete_list(self, list_name, mail_host):
+        pass
+
 
 
 class MailingList(AbstractMailingList):
