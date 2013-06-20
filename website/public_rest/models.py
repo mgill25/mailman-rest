@@ -86,13 +86,21 @@ class ListOperationParamMixin(BaseListParamSet):
     welcome_message_uri = models.CharField(max_length=50, default=u'mailman:///welcome.txt')
 
     def save(self, *args, **kwargs):
-        self.join_address = u'{0}-join@{1}'.format(self.list_name, self.mail_host)
-        self.bounces_address = u'{0}-bounces@{1}'.format(self.list_name, self.mail_host)
-        self.leave_address = u'{0}-leave@{1}'.format(self.list_name, self.mail_host)
-        self.no_reply_address = u'noreply@{0}'.format(self.mail_host)
-        self.owner_address = u'{0}-owner@{1}'.format(self.list_name, self.mail_host)
-        self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
-        self.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
+        if self.pk is None:             # New Record.
+            if not self.join_address:
+                self.join_address = u'{0}-join@{1}'.format(self.list_name, self.mail_host)
+            if not self.bounces_address:
+                self.bounces_address = u'{0}-bounces@{1}'.format(self.list_name, self.mail_host)
+            if not self.leave_address:
+                self.leave_address = u'{0}-leave@{1}'.format(self.list_name, self.mail_host)
+            if not self.no_reply_address:
+                self.no_reply_address = u'noreply@{0}'.format(self.mail_host)
+            if not self.owner_address:
+                self.owner_address = u'{0}-owner@{1}'.format(self.list_name, self.mail_host)
+            if not self.fqdn_listname:
+                self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
+            if not self.request_address:
+                self.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
         super(ListOperationParamMixin, self).save(*args, **kwargs)
 
 
