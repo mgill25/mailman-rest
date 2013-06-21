@@ -183,7 +183,14 @@ class MailingList(AbstractMailingList):
 
 
 # Domain
+class DomainManager(models.Manager):
+    def get_or_404(self, **kwargs):
+        return self.get(**kwargs)
+
 class Domain(models.Model):
+
+    objects = DomainManager()
+
     base_url = models.URLField()
     mail_host = models.CharField(max_length=100)
     description = models.TextField()
