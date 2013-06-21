@@ -187,7 +187,7 @@ class DomainManager(models.Manager):
     def get_or_404(self, **kwargs):
         return self.get(**kwargs)
 
-class Domain(models.Model):
+class Domain(BaseModel):
 
     objects = DomainManager()
 
@@ -207,3 +207,5 @@ class Domain(models.Model):
         ml.save()
         return ml
 
+    def __unicode__(self):
+        return self.mail_host
