@@ -9,6 +9,7 @@ class BaseModel(models.Model):
 
 
 class ListManager(models.Manager):
+
     def create_list(self, list_name, mail_host, fqdn_listname, **extra_fields):
         if not list_name or not fqdn_listname or not mail_host:
             raise ValueError("Invalid or Absent parameter.")
@@ -18,7 +19,25 @@ class ListManager(models.Manager):
         lst.save()
         return lst
 
+    # Methods to conform to the old Postorius models API.
+    def get_or_404(self, **kwargs):
+        return self.get(**kwargs)
 
+    def all(self, only_public=False):
+        objects = super(ListManager, self).all()
+        if only_public:
+            public = []
+            for obj in objects:
+                try:
+                    if obj.advertised:
+                        public.append(obj)
+                except AttributeError:
+                    pass
+            return public
+        else:
+            return objects
+
+# List Parameters
 class BaseListParamSet(BaseModel):
     """Base Parameters for the List"""
     class Meta:
@@ -111,8 +130,9 @@ class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperat
     class Meta:
         abstract = True
 
+# Mailing List
 class AbstractBaseList(BaseModel):
-    created_at = models.DateTimeField(default=timezone.now())
+    created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         abstract = True
@@ -130,9 +150,19 @@ class CoreListMixin(models.Model):
     mail_host = models.CharField(max_length=100,
             help_text=_("Domain Name hosting this mailing list"))
     fqdn_listname = models.CharField(max_length=100,
-            help_text=_("Fully qualified name of the list. It is comprised of list_name + '@' + mail_host"))
+            help_text=_("Fully qualified name of the list. It is comprised of list_name + '@' + mail_host"),
+            unique=True)
     display_name = models.CharField(max_length=100,
             help_text=_("Human readable name for the mailing list"))
+
+    domain = models.ForeignKey('Domain')
+
+    # Temporary Attributes that will be relationships in the future
+    owners = []
+    moderators = []
+
+    def defer_message(self, request_id):
+        pass
 
 
 class LocalListMixin(models.Model):
@@ -147,15 +177,26 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin, ListP
     class Meta:
         abstract = True
 
-    def create_list(self, list_name, mail_host):
-        # XXX: In Postorius, lists are created on Domains.
-        pass
-
-    def delete_list(self, list_name, mail_host):
-        pass
-
-
 class MailingList(AbstractMailingList):
     class Meta:
         swappable = 'MAILINGLIST_MODEL'
+
+
+# Domain
+class Domain(models.Model):
+    base_url = models.URLField()
+    mail_host = models.CharField(max_length=100)
+    description = models.TextField()
+    contact_address = models.EmailField()
+
+
+    @property
+    def lists(self):
+        return MailingList.objects.filter(domain=self)
+
+    def create_list(self, list_name):
+        """Create a mailing list on this domain"""
+        ml = MailingList(list_name=list_name, mail_host=self.mail_host, domain=self)
+        ml.save()
+        return ml
 
