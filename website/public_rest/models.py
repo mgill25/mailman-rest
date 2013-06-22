@@ -74,6 +74,7 @@ class ListPolicyParamMixin(BaseListParamSet):
     include_rfc2369_headers = models.BooleanField(default=True)
     reply_goes_to_list = models.CharField(max_length=50, default=u'no_munging')
     send_welcome_message = models.BooleanField(default=True)
+    display_name = models.CharField(max_length=100)
 
 class ListOperationParamMixin(BaseListParamSet):
     """Values controlling the immediate operations of the list"""
@@ -90,6 +91,7 @@ class ListOperationParamMixin(BaseListParamSet):
     http_etag = models.CharField(max_length=50)
     join_address = models.EmailField()
     leave_address = models.EmailField()
+    mail_host = models.CharField(max_length=100)
     next_digest_number = models.IntegerField(default=1)
     no_reply_address = models.EmailField()
     owner_address = models.EmailField()
@@ -113,7 +115,13 @@ class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperat
         abstract = True
 
 class ListSettings(ListParametersMixin):
-    pass
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __setitem__(self, key, val):
+        setattr(self, key, val)
+
 
 # Mailing List
 class AbstractBaseList(BaseModel):
@@ -143,6 +151,10 @@ class CoreListMixin(models.Model):
     domain = models.ForeignKey('Domain')
     settings = models.OneToOneField(ListSettings)
 
+    # Temporary Attributes that will be relationships in the future
+    owners = []
+    moderators = []
+
     def save(self, *args, **kwargs):
         """Populate these settings for the current MailingList instance."""
         if self.pk is None:
@@ -160,15 +172,11 @@ class CoreListMixin(models.Model):
                     self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
             if not self.settings.request_address:
                     self.settings.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
-            self.settings.save(*args, **kwargs)
+            # Postorius is inconsistent in using these via settings or directly
+            self.settings.mail_host = self.mail_host
+            self.settings.display_name = self.display_name
+            self.settings.save()    #XXX: If we need different args for settings and lists?
         super(CoreListMixin, self).save(*args, **kwargs)
-
-    # Temporary Attributes that will be relationships in the future
-    owners = []
-    moderators = []
-
-    def defer_message(self, request_id):
-        pass
 
 
 class LocalListMixin(models.Model):
@@ -183,6 +191,20 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     class Meta:
         abstract = True
 
+    def defer_message(self, request_id):
+        pass
+
+    def subscribe(self, address):
+        pass
+
+    def unsubscribe(self, address):
+        pass
+
+    def add_owner(self, address):
+        pass
+
+    def add_moderator(self, address):
+        pass
 
 class MailingList(AbstractMailingList):
     class Meta:
