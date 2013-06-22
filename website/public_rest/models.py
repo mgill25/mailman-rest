@@ -104,24 +104,6 @@ class ListOperationParamMixin(BaseListParamSet):
     web_host = models.CharField(max_length=50, default=u'')
     welcome_message_uri = models.CharField(max_length=50, default=u'mailman:///welcome.txt')
 
-    def save(self, *args, **kwargs):
-        if self.pk is None:             # New Record.
-            if not self.join_address:
-                self.join_address = u'{0}-join@{1}'.format(self.list_name, self.mail_host)
-            if not self.bounces_address:
-                self.bounces_address = u'{0}-bounces@{1}'.format(self.list_name, self.mail_host)
-            if not self.leave_address:
-                self.leave_address = u'{0}-leave@{1}'.format(self.list_name, self.mail_host)
-            if not self.no_reply_address:
-                self.no_reply_address = u'noreply@{0}'.format(self.mail_host)
-            if not self.owner_address:
-                self.owner_address = u'{0}-owner@{1}'.format(self.list_name, self.mail_host)
-            if not self.fqdn_listname:
-                self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
-            if not self.request_address:
-                self.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
-        super(ListOperationParamMixin, self).save(*args, **kwargs)
-
 
 class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperationParamMixin):
     last_post_at = models.DateTimeField(null=True, default=None)
@@ -129,6 +111,9 @@ class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperat
 
     class Meta:
         abstract = True
+
+class ListSettings(ListParametersMixin):
+    pass
 
 # Mailing List
 class AbstractBaseList(BaseModel):
@@ -156,6 +141,27 @@ class CoreListMixin(models.Model):
             help_text=_("Human readable name for the mailing list"))
 
     domain = models.ForeignKey('Domain')
+    settings = models.OneToOneField(ListSettings)
+
+    def save(self, *args, **kwargs):
+        """Populate these settings for the current MailingList instance."""
+        if self.pk is None:
+            if not self.settings.join_address:
+                self.settings.join_address = u'{0}-join@{1}'.format(self.list_name, self.mail_host)
+            if not self.settings.bounces_address:
+                    self.settings.bounces_address = u'{0}-bounces@{1}'.format(self.list_name, self.mail_host)
+            if not self.settings.leave_address:
+                    self.settings.leave_address = u'{0}-leave@{1}'.format(self.list_name, self.mail_host)
+            if not self.settings.no_reply_address:
+                    self.settings.no_reply_address = u'noreply@{0}'.format(self.mail_host)
+            if not self.settings.owner_address:
+                    self.settings.owner_address = u'{0}-owner@{1}'.format(self.list_name, self.mail_host)
+            if not self.fqdn_listname:
+                    self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
+            if not self.settings.request_address:
+                    self.settings.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
+            self.settings.save(*args, **kwargs)
+        super(CoreListMixin, self).save(*args, **kwargs)
 
     # Temporary Attributes that will be relationships in the future
     owners = []
@@ -171,11 +177,12 @@ class LocalListMixin(models.Model):
         abstract = True
 
 
-class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin, ListParametersMixin):
+class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     objects = ListManager()
 
     class Meta:
         abstract = True
+
 
 class MailingList(AbstractMailingList):
     class Meta:
@@ -201,9 +208,12 @@ class Domain(BaseModel):
     def lists(self):
         return MailingList.objects.filter(domain=self)
 
-    def create_list(self, list_name):
+    def create_list(self, list_name, **kwargs):
         """Create a mailing list on this domain"""
-        ml = MailingList(list_name=list_name, mail_host=self.mail_host, domain=self)
+        # A list can't be created without a settings object
+        settings = ListSettings()
+        settings.save()
+        ml = MailingList(list_name=list_name, mail_host=self.mail_host, domain=self, settings=settings, **kwargs)
         ml.save()
         return ml
 
