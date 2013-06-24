@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -241,3 +242,57 @@ class Domain(BaseModel):
 
     def __unicode__(self):
         return self.mail_host
+
+
+class Email(models.Model):
+    address = models.EmailField()
+    user = models.ForeignKey('User')
+    preferred = models.BooleanField(default=False)
+    verified = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return self.address
+
+
+class User(BaseModel):
+    created_on = models.DateTimeField(default=timezone.now)
+
+    @property
+    def emails(self):
+        return self.email_set.all()
+
+    def add_email(self, address):
+        email = Email(address=address)
+        self.email_set.add(email)
+        return email
+
+    def get_email(self, address):
+        return self.emails.get(address=address)
+
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        def setter(raw_password):
+            self.set_password(raw_password)
+            self.save(update_fields=['password'])
+        return check_password(raw_password, self.password, setter)
+
+
+class Member(BaseModel):
+    """A Member is created when a User subscribes to a MailingList"""
+    user = models.ForeignKey(User)                      #TODO: default case of "none" user
+    list = models.ForeignKey(MailingList)
+    address = models.EmailField()                       #TODO: Check if it belongs to the user.
+    role = models.CharField(max_length=30, default=u'member')
+
+    def unsubscribe(self):
+        """Unsubscribe from this list"""
+        pass
+
+    def preferences(self):
+        pass
+
+    def __unicode__(self):
+        return '{0} on {1}'.format(self.address, self.list.fqdn_listname)
+
