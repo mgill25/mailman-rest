@@ -38,6 +38,7 @@ class ListManager(models.Manager):
         else:
             return objects
 
+
 # List Parameters
 class BaseListParamSet(BaseModel):
     """Base Parameters for the List"""
@@ -49,6 +50,7 @@ class ListConfigParamMixin(BaseListParamSet):
     """Values established at the time that the list is created"""
     class Meta:
         abstract = True
+
 
 class ListPolicyParamMixin(BaseListParamSet):
     """List policies"""
@@ -76,6 +78,7 @@ class ListPolicyParamMixin(BaseListParamSet):
     reply_goes_to_list = models.CharField(max_length=50, default=u'no_munging')
     send_welcome_message = models.BooleanField(default=True)
     display_name = models.CharField(max_length=100)
+
 
 class ListOperationParamMixin(BaseListParamSet):
     """Values controlling the immediate operations of the list"""
@@ -115,6 +118,7 @@ class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperat
     class Meta:
         abstract = True
 
+
 class ListSettings(ListParametersMixin):
 
     def __getitem__(self, key):
@@ -122,6 +126,7 @@ class ListSettings(ListParametersMixin):
 
     def __setitem__(self, key, val):
         setattr(self, key, val)
+        self.save()
 
 
 # Mailing List
@@ -151,10 +156,6 @@ class CoreListMixin(models.Model):
 
     domain = models.ForeignKey('Domain')
     settings = models.OneToOneField(ListSettings)
-
-    # Temporary Attributes that will be relationships in the future
-    owners = []
-    moderators = []
 
     def save(self, *args, **kwargs):
         """Populate these settings for the current MailingList instance."""
@@ -195,17 +196,51 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     def defer_message(self, request_id):
         pass
 
-    def subscribe(self, address):
-        pass
+    def get_subscribers(self):
+        return Subscriber.objects.filter(_list=self)
+
+    def subscribe(self, address, role='member'):
+        # Check if the address belongs to a user
+        try:
+            u = User.objects.get(email__address=address)
+        except Exception as e:
+            # The user does not exist, create one and add an email.
+            u = User()
+            u.save()
+            e = Email(address=address, user=u)
+            e.save()
+        # Make a subscription relationship
+        s = Subscriber(user=u, _list=self, address=address, role=role)
+        s.save()
 
     def unsubscribe(self, address):
-        pass
+        try:
+            s = Subscriber.objects.get(_list=self, address=address)
+            s.delete()
+        except Exception:
+            print("The address {0} was not found in the list.".format(address))
 
     def add_owner(self, address):
-        pass
+        self.subscribe(address, role='owner')
 
     def add_moderator(self, address):
-        pass
+        self.subscribe(address, role='moderator')
+
+    def add_member(self, address):
+        self.subscribe(address, role='member')
+
+    @property
+    def owners(self):
+        return Subscriber.objects.filter(_list=self, role='owner')
+
+    @property
+    def moderators(self):
+        return Subscriber.objects.filter(_list=self, role='moderator')
+
+    @property
+    def members(self):
+        return Subscriber.objects.filter(_list=self, role='member')
+
 
 class MailingList(AbstractMailingList):
     class Meta:
@@ -217,6 +252,7 @@ class DomainManager(models.Manager):
     def get_or_404(self, **kwargs):
         return self.get(**kwargs)
 
+
 class Domain(BaseModel):
 
     objects = DomainManager()
@@ -225,7 +261,6 @@ class Domain(BaseModel):
     mail_host = models.CharField(max_length=100)
     description = models.TextField()
     contact_address = models.EmailField()
-
 
     @property
     def lists(self):
@@ -245,7 +280,7 @@ class Domain(BaseModel):
 
 
 class Email(models.Model):
-    address = models.EmailField()
+    address = models.EmailField(unique=True)
     user = models.ForeignKey('User')
     preferred = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
@@ -262,9 +297,12 @@ class User(BaseModel):
         return self.email_set.all()
 
     def add_email(self, address):
-        email = Email(address=address)
-        self.email_set.add(email)
-        return email
+        email, created = Email.objects.get_or_create(address=address, user=self)
+        if created:
+            self.email_set.add(email)
+            return email
+        else:
+            print('Already exists!')
 
     def get_email(self, address):
         return self.emails.get(address=address)
@@ -279,20 +317,81 @@ class User(BaseModel):
         return check_password(raw_password, self.password, setter)
 
 
-class Member(BaseModel):
+# Subscriber Preferences
+class BaseSubscriberPrefs(BaseModel):
+    class Meta:
+        abstract = True
+
+    acknowledge_posts = models.NullBooleanField()
+    delivery_mode = models.CharField(max_length=50, blank=True)
+    delivery_status = models.CharField(max_length=50, blank=True)
+    hide_address = models.NullBooleanField()
+    preferred_language = models.CharField(max_length=50, blank=True)
+    receive_list_copy = models.NullBooleanField()
+    receive_own_postings = models.NullBooleanField()
+    subscriber = models.OneToOneField('Subscriber')
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __setitem__(self, key, val):
+        setattr(self, key, val)
+        self.save()
+
+
+class OwnerPrefs(BaseSubscriberPrefs):
+    pass
+
+
+class ModeratorPrefs(BaseSubscriberPrefs):
+    pass
+
+
+class MemberPrefs(BaseSubscriberPrefs):
+    pass
+
+
+#TODO: Think of a better name than Subscribers
+class Subscriber(BaseModel):
     """A Member is created when a User subscribes to a MailingList"""
-    user = models.ForeignKey(User)                      #TODO: default case of "none" user
-    list = models.ForeignKey(MailingList)
-    address = models.EmailField()                       #TODO: Check if it belongs to the user.
+    user = models.ForeignKey(User)
+    _list = models.ForeignKey(MailingList)
+    address = models.EmailField()
     role = models.CharField(max_length=30, default=u'member')
+
+    def is_owner(self):
+        return self.role == 'owner'
+
+    def is_moderator(self):
+        return self.role == 'moderator'
+
+    def is_member(self):
+        return self.role == 'member'
 
     def unsubscribe(self):
         """Unsubscribe from this list"""
-        pass
+        self.delete()
 
+    def save(self, *args, **kwargs):
+        # First save this object
+        super(Subscriber, self).save(*args, **kwargs)
+        # Then save the preferences
+        if self.role == 'member':
+            prefs = MemberPrefs(subscriber=self)
+        elif self.role == 'moderator':
+            prefs = ModeratorPrefs(subscriber=self)
+        elif self.role == 'owner':
+            prefs = OwnerPrefs(subscriber=self)
+        prefs.save()
+
+    @property
     def preferences(self):
-        pass
+        if self.role == 'owner':
+            return self.ownerprefs
+        elif self.role == 'moderator':
+            return self.moderatorprefs
+        elif self.role == 'member':
+            return self.memberprefs
 
     def __unicode__(self):
-        return '{0} on {1}'.format(self.address, self.list.fqdn_listname)
-
+        return '{0} on {1}'.format(self.address, self._list.fqdn_listname)
