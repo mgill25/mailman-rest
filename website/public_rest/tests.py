@@ -64,8 +64,9 @@ class ModelTest(TestCase):
         self.assertEqual(u.emails.count(), 0)
         u_mail = u.add_email('hello@goodbye.com')
         self.assertEqual(u.emails.count(), 1)
-        self.assertIsNone(u.add_email('hello@goodbye.com'))   # Can't add the same address twice.
-        self.assertEqual(u.emails.count(), 1)                 # so no new email
+        with self.assertRaises(ValueError):
+            self.assertIsNone(u.add_email('hello@goodbye.com'))   # Can't add the same address twice.
+            self.assertEqual(u.emails.count(), 1)                 # so no new email
         #self.assertEqual(u.get_email('hello@goodbye.com'), u_mail)
         u.set_password('foobar')
         self.assertTrue(u.check_password('foobar'))

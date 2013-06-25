@@ -306,8 +306,7 @@ class User(BaseModel):
         if created:
             self.email_set.add(email)
             return email
-        else:
-            print('Already exists!')
+        raise ValueError("Already Exists!")
 
     def get_email(self, address):
         return self.emails.get(address=address)
