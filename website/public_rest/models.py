@@ -1,11 +1,7 @@
 from django.contrib.auth.hashers import check_password, make_password
-from django.core.paginator import Paginator, EmptyPage
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-
-
-DEFAULT_PAGE_ITEM_COUNT=50
 
 
 class BaseModel(models.Model):
@@ -248,14 +244,6 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     @property
     def all_subscribers(self):
         return Subscriber.objects.filter(_list=self)
-
-    def get_member_page(self, count=DEFAULT_PAGE_ITEM_COUNT, page=1):
-        p = Paginator(self.all_subscribers, count)
-        try:
-            page = p.page(page)
-        except EmptyPage:
-            page = p.page(p.num_pages) # deliver last page of the result
-        return page
 
 
 class MailingList(AbstractMailingList):
