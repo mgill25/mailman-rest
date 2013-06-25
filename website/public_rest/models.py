@@ -1,7 +1,11 @@
 from django.contrib.auth.hashers import check_password, make_password
+from django.core.paginator import Paginator, EmptyPage
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+
+
+DEFAULT_PAGE_ITEM_COUNT=50
 
 
 class BaseModel(models.Model):
@@ -241,6 +245,18 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     def members(self):
         return Subscriber.objects.filter(_list=self, role='member')
 
+    @property
+    def all_subscribers(self):
+        return Subscriber.objects.filter(_list=self)
+
+    def get_member_page(self, count=DEFAULT_PAGE_ITEM_COUNT, page=1):
+        p = Paginator(self.all_subscribers, count)
+        try:
+            page = p.page(page)
+        except EmptyPage:
+            page = p.page(p.num_pages) # deliver last page of the result
+        return page
+
 
 class MailingList(AbstractMailingList):
     class Meta:
@@ -271,7 +287,8 @@ class Domain(BaseModel):
         # A list can't be created without a settings object
         settings = ListSettings()
         settings.save()
-        ml = MailingList(list_name=list_name, mail_host=self.mail_host, domain=self, settings=settings, **kwargs)
+        ml = MailingList(list_name=list_name, mail_host=self.mail_host,\
+                domain=self, settings=settings, **kwargs)
         ml.save()
         return ml
 
@@ -354,10 +371,15 @@ class MemberPrefs(BaseSubscriberPrefs):
 #TODO: Think of a better name than Subscribers
 class Subscriber(BaseModel):
     """A Member is created when a User subscribes to a MailingList"""
+    ROLE_CHOICES = (
+            ('owner', 'Owner'),
+            ('moderator', 'Moderator'),
+            ('member', 'Member')
+    )
     user = models.ForeignKey(User)
     _list = models.ForeignKey(MailingList)
     address = models.EmailField()
-    role = models.CharField(max_length=30, default=u'member')
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=u'member')
 
     def is_owner(self):
         return self.role == 'owner'
