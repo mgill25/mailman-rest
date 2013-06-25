@@ -383,16 +383,19 @@ class Subscriber(BaseModel):
         self.delete()
 
     def save(self, *args, **kwargs):
-        # First save this object
-        super(Subscriber, self).save(*args, **kwargs)
-        # Then save the preferences
-        if self.role == 'member':
-            prefs = MemberPrefs(subscriber=self)
-        elif self.role == 'moderator':
-            prefs = ModeratorPrefs(subscriber=self)
-        elif self.role == 'owner':
-            prefs = OwnerPrefs(subscriber=self)
-        prefs.save()
+        if self.pk is None:
+            # First save this object
+            super(Subscriber, self).save(*args, **kwargs)
+            # Then save the preferences
+            if self.role == 'member':
+                prefs = MemberPrefs(subscriber=self)
+            elif self.role == 'moderator':
+                prefs = ModeratorPrefs(subscriber=self)
+            elif self.role == 'owner':
+                prefs = OwnerPrefs(subscriber=self)
+            prefs.save()
+        else:
+            super(Subscriber, self).save(*args, **kwargs)
 
     @property
     def preferences(self):
