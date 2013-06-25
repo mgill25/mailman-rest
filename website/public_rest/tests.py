@@ -48,12 +48,24 @@ class ModelTest(TestCase):
         self.assertEqual(mlist.fqdn_listname, 'test@mail.example.com')
         self.assertEqual(mlist.domain, d)
         self.assertEqual(mlist.owners.count(), 0)
+        mlist.subscribe('a@example.com')
+        self.assertTrue('a@example.com' in [email.address for email in mlist.members])
+        mlist.add_owner('batman@gotham.com')
+        self.assertTrue('batman@gotham.com' in [email.address for email in mlist.owners])
+        mlist.add_moderator('superman@metropolis.com')
+        self.assertTrue('superman@metropolis.com' in [email.address for email in mlist.moderators])
+        # also present in all_subscribers
+        self.assertTrue('a@example.com' in [email.address for email in mlist.all_subscribers])
+        self.assertTrue('batman@gotham.com' in [email.address for email in mlist.all_subscribers])
+        self.assertTrue('superman@metropolis.com' in [email.address for email in mlist.all_subscribers])
 
     def test_user(self):
         u = User.objects.create()
         self.assertEqual(u.emails.count(), 0)
         u_mail = u.add_email('hello@goodbye.com')
         self.assertEqual(u.emails.count(), 1)
+        self.assertIsNone(u.add_email('hello@goodbye.com'))   # Can't add the same address twice.
+        self.assertEqual(u.emails.count(), 1)                 # so no new email
         #self.assertEqual(u.get_email('hello@goodbye.com'), u_mail)
         u.set_password('foobar')
         self.assertTrue(u.check_password('foobar'))
