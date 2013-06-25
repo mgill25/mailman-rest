@@ -359,24 +359,27 @@ class MemberPrefs(BaseSubscriberPrefs):
 #TODO: Think of a better name than Subscribers
 class Subscriber(BaseModel):
     """A Member is created when a User subscribes to a MailingList"""
+    OWNER = 'owner'
+    MODERATOR = 'moderator'
+    MEMBER = 'member'
     ROLE_CHOICES = (
-            ('owner', 'Owner'),
-            ('moderator', 'Moderator'),
-            ('member', 'Member')
+            (OWNER, 'Owner'),
+            (MODERATOR, 'Moderator'),
+            (MEMBER, 'Member')
     )
     user = models.ForeignKey(User)
     _list = models.ForeignKey(MailingList)
     address = models.EmailField()
-    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=u'member')
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=MEMBER)
 
     def is_owner(self):
-        return self.role == 'owner'
+        return self.role == self.OWNER
 
     def is_moderator(self):
-        return self.role == 'moderator'
+        return self.role == self.MODERATOR
 
     def is_member(self):
-        return self.role == 'member'
+        return self.role == self.MEMBER
 
     def unsubscribe(self):
         """Unsubscribe from this list"""
@@ -387,11 +390,11 @@ class Subscriber(BaseModel):
             # First save this object
             super(Subscriber, self).save(*args, **kwargs)
             # Then save the preferences
-            if self.role == 'member':
+            if self.role == self.MEMBER:
                 prefs = MemberPrefs(subscriber=self)
-            elif self.role == 'moderator':
+            elif self.role == self.MODERATOR:
                 prefs = ModeratorPrefs(subscriber=self)
-            elif self.role == 'owner':
+            elif self.role == self.OWNER:
                 prefs = OwnerPrefs(subscriber=self)
             prefs.save()
         else:
@@ -399,11 +402,11 @@ class Subscriber(BaseModel):
 
     @property
     def preferences(self):
-        if self.role == 'owner':
+        if self.role == self.OWNER:
             return self.ownerprefs
-        elif self.role == 'moderator':
+        elif self.role == self.MODERATOR:
             return self.moderatorprefs
-        elif self.role == 'member':
+        elif self.role == self.MEMBER:
             return self.memberprefs
 
     def __unicode__(self):
