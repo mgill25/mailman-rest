@@ -24,6 +24,22 @@ class SimpleTest(TestCase):
 
 class ModelTest(TestCase):
 
+    def setup_list_user(self):
+        """
+        Create a mock domain, list and a user.
+        """
+        domain = Domain.objects.create(base_url='example.com', mail_host='mail.example.com')
+        mlist = domain.create_list('test')
+        user = User.objects.create()
+        return domain, mlist, user
+
+    def create_subscription(self, user, mlist, role='member'):
+        """
+        Associate the user and list with a subscription.
+        """
+        sub = Subscriber.objects.create(user=user, _list=mlist, address='admin@example.com', role=role)
+        return sub
+
     def test_domain(self):
         d = Domain.objects.create(base_url='example.com', mail_host='mail.example.com',
                 description='An example domain', contact_address='admin@example.com')
@@ -72,18 +88,16 @@ class ModelTest(TestCase):
         self.assertTrue(u.check_password('foobar'))
 
     def test_subscriber_creation(self):
-        domain = Domain.objects.create(base_url='example.com', mail_host='mail.example.com')
-        mlist = domain.create_list('test')
-        user = User.objects.create()
-        sub1 = Subscriber.objects.create(user=user, _list=mlist, address='admin@example.com', role='member')
+        domain, mlist, user = self.setup_list_user()
+        sub1 = self.create_subscription(user, mlist, 'member')
         self.assertTrue(sub1.is_member())
         self.assertFalse(sub1.is_owner())
         self.assertFalse(sub1.is_moderator())
-        sub2 = Subscriber.objects.create(user=user, _list=mlist, address='admin@example.com', role='owner')
+        sub2 = self.create_subscription(user, mlist, 'owner')
         self.assertFalse(sub2.is_member())
         self.assertTrue(sub2.is_owner())
         self.assertFalse(sub2.is_moderator())
-        sub3 = Subscriber.objects.create(user=user, _list=mlist, address='admin@example.com', role='moderator')
+        sub3 = self.create_subscription(user, mlist, 'moderator')
         self.assertFalse(sub3.is_member())
         self.assertFalse(sub3.is_owner())
         self.assertTrue(sub3.is_moderator())
