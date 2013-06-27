@@ -214,11 +214,8 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         s.save()
 
     def unsubscribe(self, address):
-        try:
-            s = Subscriber.objects.get(_list=self, address=address)
-            s.delete()
-        except Exception:
-            print("The address {0} was not found in the list.".format(address))
+        s = Subscriber.objects.get(_list=self, address=address)
+        s.delete()
 
     def add_owner(self, address):
         self.subscribe(address, role='owner')
@@ -245,6 +242,8 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     def all_subscribers(self):
         return Subscriber.objects.filter(_list=self)
 
+    def get_member(self, address):
+        return Subscriber.objects.get(_list=self, address=address)
 
 class MailingList(AbstractMailingList):
     class Meta:
