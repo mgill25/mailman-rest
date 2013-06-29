@@ -1,4 +1,7 @@
+import uuid
+
 from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -203,9 +206,9 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         # Check if the address belongs to a user
         try:
             u = User.objects.get(email__address=address)
-        except Exception as e:
-            # The user does not exist, create one and add an email.
-            u = User()
+        except User.DoesNotExist as e:
+            # The user does not exist, create one, using email as the username
+            u = User(username=address)
             u.save()
             e = Email(address=address, user=u)
             e.save()
@@ -292,13 +295,48 @@ class Email(models.Model):
     def __unicode__(self):
         return self.address
 
+class UserManager(BaseUserManager):
+    def create_user(self, username, email, password):
+        if not username:
+            raise ValueError("No Username Provided!")
+        if not password:
+            raise ValueError("No Password Provided!")
+        user = self.model(username=username)
+        user.save()
+        user.add_email(email)
+        user.set_password(password)
+        return user
 
-class User(BaseModel):
+    def create_superuser(self, username, email, password):
+        user = self.create_user(username=username, email=email, password=password)
+        user.is_admin=True
+        user.is_staff=True
+        user.is_superuser=True
+        user.save(using=self._db)
+        return user
+
+class AbstractUser(AbstractBaseUser, PermissionsMixin):
+    class Meta:
+        abstract = True
+
+    objects = UserManager()
+
+    username = models.CharField(max_length=50, unique=True)
+    display_name = models.CharField(max_length=30, blank=True)
+    user_id = models.CharField(max_length=40, default=str(uuid.uuid1().int))      # BitIntegerField causes overflow
     created_on = models.DateTimeField(default=timezone.now)
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = []
+
 
     @property
     def emails(self):
         return self.email_set.all()
+
+    @property
+    def subscriptions(self):
+        return Subscriber.objects.filter(user=self)
 
     def add_email(self, address):
         email, created = Email.objects.get_or_create(address=address, user=self)
@@ -312,6 +350,7 @@ class User(BaseModel):
 
     def set_password(self, raw_password):
         self.password = make_password(raw_password)
+        self.save()
 
     def check_password(self, raw_password):
         def setter(raw_password):
@@ -319,6 +358,12 @@ class User(BaseModel):
             self.save(update_fields=['password'])
         return check_password(raw_password, self.password, setter)
 
+    def __unicode__(self):
+        return self.username
+
+
+class User(AbstractUser):
+    pass
 
 # Subscriber Preferences
 class BaseSubscriberPrefs(BaseModel):
