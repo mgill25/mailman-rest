@@ -207,8 +207,8 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         try:
             u = User.objects.get(email__address=address)
         except User.DoesNotExist as e:
-            # The user does not exist, create one, using email as the username
-            u = User(username=address)
+            # The user does not exist, create one, using email as the display_name
+            u = User(display_name=address)
             u.save()
             e = Email(address=address, user=u)
             e.save()
@@ -296,19 +296,19 @@ class Email(models.Model):
         return self.address
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, email, password):
-        if not username:
-            raise ValueError("No Username Provided!")
+    def create_user(self, display_name, email, password):
+        if not display_name:
+            raise ValueError("No display_name Provided!")
         if not password:
             raise ValueError("No Password Provided!")
-        user = self.model(username=username)
+        user = self.model(display_name=display_name)
         user.save()
         user.add_email(email)
         user.set_password(password)
         return user
 
-    def create_superuser(self, username, email, password):
-        user = self.create_user(username=username, email=email, password=password)
+    def create_superuser(self, display_name, email, password):
+        user = self.create_user(display_name=display_name, email=email, password=password)
         user.is_admin=True
         user.is_staff=True
         user.is_superuser=True
@@ -321,12 +321,11 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    username = models.CharField(max_length=50, unique=True)
-    display_name = models.CharField(max_length=30, blank=True)
+    display_name = models.CharField(max_length=30, unique=True)
     user_id = models.CharField(max_length=40, default=str(uuid.uuid1().int))      # BitIntegerField causes overflow
     created_on = models.DateTimeField(default=timezone.now)
 
-    USERNAME_FIELD = 'username'
+    USERNAME_FIELD = 'display_name'
     REQUIRED_FIELDS = []
 
 
@@ -359,7 +358,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
         return check_password(raw_password, self.password, setter)
 
     def __unicode__(self):
-        return self.username
+        return self.display_name
 
 
 class User(AbstractUser):
