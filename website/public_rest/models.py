@@ -334,6 +334,10 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
         return self.email_set.all()
 
     @property
+    def preferred_email(self):
+        return self.emails.get(preferred=True)
+
+    @property
     def subscriptions(self):
         return Subscriber.objects.filter(user=self)
 
@@ -450,6 +454,10 @@ class Subscriber(BaseModel):
             return self.moderatorprefs
         elif self.role == self.MEMBER:
             return self.memberprefs
+
+    @property
+    def fqdn_listname(self):
+        return self._list.fqdn_listname
 
     def __unicode__(self):
         return '{0} on {1}'.format(self.address, self._list.fqdn_listname)
