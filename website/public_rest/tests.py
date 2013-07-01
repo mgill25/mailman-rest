@@ -24,14 +24,24 @@ class SimpleTest(TestCase):
 
 class ModelTest(TestCase):
 
+    def create_sample_user(self):
+        u = User(display_name='James Bond')
+        u.save()
+        u.set_password('casino')
+        return u
+
     def setup_list_user(self):
         """
         Create a mock domain, list and a user.
         """
         domain = Domain.objects.create(base_url='example.com', mail_host='mail.example.com')
         mlist = domain.create_list('test')
-        user = User.objects.create()
+        user = self.create_sample_user()
         return domain, mlist, user
+
+    def test_user_password(self):
+        u = self.create_sample_user()
+        self.assertTrue(u.check_password('casino'))
 
     def create_subscription(self, user, mlist, role='member'):
         """
