@@ -7,6 +7,7 @@ when you run "manage.py test".
 Replace this with more appropriate tests for your application.
 """
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.test.utils import setup_test_environment
 from django.test.client import Client
@@ -25,7 +26,7 @@ class SimpleTest(TestCase):
 class ModelTest(TestCase):
 
     def create_sample_user(self):
-        u = User(display_name='James Bond')
+        u = get_user_model()(display_name='James Bond')
         u.save()
         u.set_password('casino')
         return u
@@ -88,7 +89,7 @@ class ModelTest(TestCase):
         self.assertTrue('superman@metropolis.com' in [email.address for email in mlist.all_subscribers])
 
     def test_user(self):
-        u = User.objects.create()
+        u = get_user_model().objects.create()
         self.assertEqual(u.emails.count(), 0)
         u_mail = u.add_email('hello@goodbye.com')
         self.assertEqual(u.emails.count(), 1)

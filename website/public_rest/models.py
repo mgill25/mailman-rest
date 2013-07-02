@@ -1,5 +1,7 @@
 import uuid
 
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
@@ -223,10 +225,10 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     def subscribe(self, address, role='member'):
         # Check if the address belongs to a user
         try:
-            u = User.objects.get(email__address=address)
-        except User.DoesNotExist as e:
+            u = get_user_model().objects.get(email__address=address)
+        except get_user_model().DoesNotExist as e:
             # The user does not exist, create one, using email as the display_name
-            u = User(display_name=address)
+            u = get_user_model()(display_name=address)
             u.save()
             e = Email(address=address, user=u)
             e.save()
@@ -306,7 +308,7 @@ class Domain(BaseModel):
 
 class Email(models.Model):
     address = models.EmailField(unique=True)
-    user = models.ForeignKey('User')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     preferred = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
 
@@ -431,7 +433,7 @@ class Subscriber(BaseModel):
             (MODERATOR, 'Moderator'),
             (MEMBER, 'Member')
     )
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     _list = models.ForeignKey(MailingList)
     address = models.EmailField()
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=MEMBER)
