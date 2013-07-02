@@ -88,8 +88,8 @@ class ListOperationParamMixin(BaseListParamSet):
     class Meta:
         abstract = True
 
-    # acceptable_aliases - FieldType?
-    # autoresponse_grace_period -  Timedelta
+
+    autoresponse_grace_period = models.CharField(max_length=10, default=u'90d')
     bounces_address = models.EmailField()
     default_member_action = models.CharField(max_length=50, default=u'defer')
     default_nonmember_action = models.CharField(max_length=50, default=u'hold')
@@ -113,6 +113,14 @@ class ListOperationParamMixin(BaseListParamSet):
     web_host = models.CharField(max_length=50, default=u'')
     welcome_message_uri = models.CharField(max_length=50, default=u'mailman:///welcome.txt')
 
+class AcceptableAlias(BaseModel):
+    used_by = models.ForeignKey('ListSettings')
+    refers_to = models.ForeignKey('MailingList')
+    address = models.EmailField(blank=True)
+
+    def __unicode__(self):
+        return self.address
+
 
 class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperationParamMixin):
     last_post_at = models.DateTimeField(null=True, default=None)
@@ -123,6 +131,16 @@ class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperat
 
 
 class ListSettings(ListParametersMixin):
+
+    @property
+    def acceptable_aliases(self):
+        return [alias.address for alias in self.acceptablealias_set.all()]
+
+    def add_alias(self, address):
+        a = AcceptableAlias(used_by=self,
+                            refers_to=self.mailinglist,
+                            address=address)
+        a.save()
 
     def __getitem__(self, key):
         return getattr(self, key)
