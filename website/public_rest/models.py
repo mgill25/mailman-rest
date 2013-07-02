@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -27,7 +28,11 @@ class ListManager(models.Manager):
 
     # Methods to conform to the old Postorius models API.
     def get_or_404(self, **kwargs):
-        return self.get(**kwargs)
+        try:
+            rv = self.get(**kwargs)
+        except self.model.DoesNotExist:
+            raise Http404
+        return rv
 
     def all(self, only_public=False):
         objects = super(ListManager, self).all()
@@ -277,7 +282,11 @@ class MailingList(AbstractMailingList):
 # Domain
 class DomainManager(models.Manager):
     def get_or_404(self, **kwargs):
-        return self.get(**kwargs)
+        try:
+            rv = self.get(**kwargs)
+        except self.model.DoesNotExist:
+            raise Http404
+        return rv
 
 
 class Domain(BaseModel):
