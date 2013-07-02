@@ -139,10 +139,11 @@ class ListSettings(ListParametersMixin):
         return [alias.address for alias in self.acceptablealias_set.all()]
 
     def add_alias(self, address):
-        a = AcceptableAlias(used_by=self,
-                            refers_to=self.mailinglist,
-                            address=address)
-        a.save()
+        a, created = AcceptableAlias.objects.get_or_create(used_by=self,
+                refers_to=self.mailinglist,
+                address=address)
+        if created:
+            a.save()
 
     def __getitem__(self, key):
         return getattr(self, key)
