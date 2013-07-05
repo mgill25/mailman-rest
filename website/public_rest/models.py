@@ -225,9 +225,6 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     def defer_message(self, request_id):
         pass
 
-    def get_subscribers(self):
-        return Subscriber.objects.filter(_list=self)
-
     def subscribe(self, address, role='member'):
         # Check if the address belongs to a user
         try:
@@ -239,11 +236,11 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
             e = Email(address=address, user=u)
             e.save()
         # Make a subscription relationship
-        s = Subscriber(user=u, _list=self, address=address, role=role)
-        s.save()
+        s = self.membership_set.create(user=u, address=address, role=role)
+        return s
 
     def unsubscribe(self, address):
-        s = Subscriber.objects.get(_list=self, address=address)
+        s = self.membership_set.get(address=address)
         s.delete()
 
     def add_owner(self, address):
@@ -257,22 +254,22 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
 
     @property
     def owners(self):
-        return Subscriber.objects.filter(_list=self, role='owner')
+        return self.membership_set.filter(role='owner')
 
     @property
     def moderators(self):
-        return Subscriber.objects.filter(_list=self, role='moderator')
+        return self.membership_set.filter(role='moderator')
 
     @property
     def members(self):
-        return Subscriber.objects.filter(_list=self, role='member')
+        return self.membership_set.filter(role='member')
 
     @property
     def all_subscribers(self):
-        return Subscriber.objects.filter(_list=self)
+        return self.membership_set.all()
 
     def get_member(self, address):
-        return Subscriber.objects.get(_list=self, address=address)
+        return self.membership_set.get(address=address)
 
 class MailingList(AbstractMailingList):
     class Meta:
@@ -369,7 +366,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
 
     @property
     def subscriptions(self):
-        return Subscriber.objects.filter(user=self)
+        return Membership.objects.filter(user=self)
 
     def add_email(self, address):
         email, created = Email.objects.get_or_create(address=address, user=self)
@@ -398,8 +395,8 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
 class User(AbstractUser):
     pass
 
-# Subscriber Preferences
-class BaseSubscriberPrefs(BaseModel):
+# Membership Preferences
+class BaseMembershipPrefs(BaseModel):
     class Meta:
         abstract = True
 
@@ -410,7 +407,7 @@ class BaseSubscriberPrefs(BaseModel):
     preferred_language = models.CharField(max_length=50, blank=True)
     receive_list_copy = models.NullBooleanField()
     receive_own_postings = models.NullBooleanField()
-    subscriber = models.OneToOneField('Subscriber')
+    membership = models.OneToOneField('Membership')
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -420,21 +417,20 @@ class BaseSubscriberPrefs(BaseModel):
         self.save()
 
 
-class OwnerPrefs(BaseSubscriberPrefs):
+class OwnerPrefs(BaseMembershipPrefs):
     pass
 
 
-class ModeratorPrefs(BaseSubscriberPrefs):
+class ModeratorPrefs(BaseMembershipPrefs):
     pass
 
 
-class MemberPrefs(BaseSubscriberPrefs):
+class MemberPrefs(BaseMembershipPrefs):
     pass
 
 
-#TODO: Think of a better name than Subscribers
-class Subscriber(BaseModel):
-    """A Member is created when a User subscribes to a MailingList"""
+class Membership(BaseModel):
+    """A Membership is created when a User subscribes to a MailingList"""
     OWNER = 'owner'
     MODERATOR = 'moderator'
     MEMBER = 'member'
@@ -464,17 +460,17 @@ class Subscriber(BaseModel):
     def save(self, *args, **kwargs):
         if self.pk is None:
             # First save this object
-            super(Subscriber, self).save(*args, **kwargs)
+            super(Membership, self).save(*args, **kwargs)
             # Then save the preferences
             if self.role == self.MEMBER:
-                prefs = MemberPrefs(subscriber=self)
+                prefs = MemberPrefs(membership=self)
             elif self.role == self.MODERATOR:
-                prefs = ModeratorPrefs(subscriber=self)
+                prefs = ModeratorPrefs(membership=self)
             elif self.role == self.OWNER:
-                prefs = OwnerPrefs(subscriber=self)
+                prefs = OwnerPrefs(membership=self)
             prefs.save()
         else:
-            super(Subscriber, self).save(*args, **kwargs)
+            super(Membership, self).save(*args, **kwargs)
 
     @property
     def preferences(self):
