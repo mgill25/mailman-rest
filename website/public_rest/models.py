@@ -440,7 +440,7 @@ class Membership(BaseModel):
             (MEMBER, 'Member')
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    _list = models.ForeignKey(MailingList)
+    mlist = models.ForeignKey(MailingList)
     address = models.EmailField()
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=MEMBER)
 
@@ -483,7 +483,7 @@ class Membership(BaseModel):
 
     @property
     def fqdn_listname(self):
-        return self._list.fqdn_listname
+        return self.mlist.fqdn_listname
 
     def __unicode__(self):
-        return '{0} on {1}'.format(self.address, self._list.fqdn_listname)
+        return '{0} on {1}'.format(self.address, self.mlist.fqdn_listname)
