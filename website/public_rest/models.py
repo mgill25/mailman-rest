@@ -349,7 +349,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     display_name = models.CharField(max_length=30, unique=True)
-    user_id = models.CharField(max_length=40, default=str(uuid.uuid1().int))      # BitIntegerField causes overflow
+    user_id = models.CharField(max_length=40, default=lambda: str(uuid.uuid1().int))
     created_on = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = 'display_name'
