@@ -1,7 +1,7 @@
 from django.contrib.auth.models import Group
 from rest_framework import viewsets
-from .serializers import UserSerializer, GroupSerializer
-from .models import User
+from .serializers import UserSerializer, MembershipSerializer, MailingListSerializer
+from .models import User, Membership, MailingList
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -12,9 +12,14 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
 
-class GroupViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows groups to be viewed or edited.
-    """
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+class MembershipViewSet(viewsets.ModelViewSet):
+
+    queryset = Membership.objects.all()
+    serializer_class = MembershipSerializer
+
+
+class MailingListViewSet(viewsets.ModelViewSet):
+
+    queryset = MailingList.objects.all()
+    serializer_class = MailingListSerializer
+
