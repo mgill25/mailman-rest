@@ -351,6 +351,8 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     display_name = models.CharField(max_length=30, unique=True)
     user_id = models.CharField(max_length=40, default=lambda: str(uuid.uuid1().int))
     created_on = models.DateTimeField(default=timezone.now)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'display_name'
     REQUIRED_FIELDS = []
