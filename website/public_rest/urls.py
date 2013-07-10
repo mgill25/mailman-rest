@@ -6,6 +6,8 @@ router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'memberships', views.MembershipViewSet)
 router.register(r'mailinglists', views.MailingListViewSet)
+router.register(r'domains', views.DomainViewSet)
+router.register(r'emails', views.EmailViewSet)
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browseable API.
