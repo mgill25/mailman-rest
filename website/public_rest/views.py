@@ -26,9 +26,11 @@ class MailingListViewSet(viewsets.ModelViewSet):
     queryset = MailingList.objects.all()
     serializer_class = MailingListSerializer
 
+
 class DomainViewSet(viewsets.ModelViewSet):
     queryset = Domain.objects.all()
     serializer_class = DomainSerializer
+
 
 class EmailViewSet(viewsets.ModelViewSet):
     queryset = Email.objects.all()
