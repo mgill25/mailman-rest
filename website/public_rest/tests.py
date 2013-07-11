@@ -48,7 +48,7 @@ class ModelTest(TestCase):
         """
         Associate the user and list with a subscription.
         """
-        sub = Subscriber.objects.create(user=user, _list=mlist, address='admin@example.com', role=role)
+        sub = Membership.objects.create(user=user, mlist=mlist, address='admin@example.com', role=role)
         return sub
 
     def test_domain(self):
