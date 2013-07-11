@@ -1,0 +1,28 @@
+Endpoints for the new API
+=========================
+
+BASE_API_URL = 'http://example.com/api/'
+
+URLs are relative.
+
+User
+----
+        1. /users/              :               Collection of all users
+        
+        2. /users/<username>    :               Detail of a user. Alternatively, use no. 3? 
+
+        3. /users/?display_name=bob  :          Return Collection (of 1 user), using query param display_name.
+
+        4. /users/?email=foo@bar.com :          Return Collection (of 1 user) which has the email address foo@bar.com.
+
+        5. /users/?email=foo@bar.com&verified=true : Collection of 1 user which has foo@bar.com email AND EMAIL IS VERIFIED.
+
+        6. /users/?verified=true :              Collection of ALL Users which have at least one verified email address.
+
+        7. /users/<int>          :              How DRF gives the DetailView of a User right now. /users/1, /users/2 etc.
+
+        8. /users/?page=2        :              Paginated collection result of Users. Each collection has "count", "prev"
+and "next", which turn into follow up links to previous/next pages, otherwise, are null.
+
+        9. /users/?list=test@mail.example.com : All users which are subscribed to the given list "test@mail.example.com"
+                                                 
