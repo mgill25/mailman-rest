@@ -7,7 +7,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
         fields = ('url', 'display_name', 'email_set',
-                'is_superuser', 'membership_set')
+                'is_superuser', 'membership_set', 'preferred_email')
 
 
 class MembershipSerializer(serializers.HyperlinkedModelSerializer):
@@ -43,4 +43,4 @@ class EmailSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Email
-        fields = ('url', 'address', 'user', 'preferred', 'verified')
+        fields = ('url', 'address', 'user', 'verified')
