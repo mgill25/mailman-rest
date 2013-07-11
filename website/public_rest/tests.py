@@ -174,3 +174,12 @@ class ModelTest(TestCase):
         self.assertEqual(mset.subject_prefix, '')
         self.assertEqual(mset.web_host, '')
         self.assertEqual(mset.welcome_message_uri, 'mailman:///welcome.txt')
+
+    def test_preferred_email(self):
+        u = User.objects.create_user(display_name='naeblis', email='pref@example.com',
+                                     password='12345')
+        self.assertEqual(u.preferred_email.address, 'pref@example.com')
+        u.create_preferred_email(address='foo@bar.com')
+        self.assertEqual(u.preferred_email.address, 'foo@bar.com')
+        u.remove_preferred_email()
+        self.assertIsNone(u.preferred_email)

@@ -316,8 +316,14 @@ class Domain(BaseModel):
 class Email(models.Model):
     address = models.EmailField(unique=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    preferred = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            if self.user.preferred_email is None:
+                self.user.preferred_email = self
+                self.user.save()
+        super(Email, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return self.address
@@ -353,18 +359,30 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     created_on = models.DateTimeField(default=timezone.now)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    preferred_email = models.OneToOneField(Email, null=True,
+                                           related_name='%(class)s_preferred')
 
     USERNAME_FIELD = 'display_name'
     REQUIRED_FIELDS = []
-
 
     @property
     def emails(self):
         return self.email_set.all()
 
-    @property
-    def preferred_email(self):
-        return self.emails.get(preferred=True)
+    def create_preferred_email(self, address):
+        email, created = Email.objects.get_or_create(address=address,
+                                                     user=self)
+        self.preferred_email = email
+        self.save()
+
+    def remove_preferred_email(self):
+        """
+        Remove an Email as the "preferred" email but don't
+        delete it. It will still be available in the user's
+        email_set.
+        """
+        self.preferred_email = None
+        self.save()
 
     @property
     def subscriptions(self):
