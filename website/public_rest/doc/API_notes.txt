@@ -1,4 +1,4 @@
-Documentation for the REST API
+Notes for the REST API
 ============================================
 
 The following are the primary endpoints that we have as of now:
