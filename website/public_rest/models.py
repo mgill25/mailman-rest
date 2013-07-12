@@ -11,10 +11,9 @@ from django.utils.translation import ugettext_lazy as _
 from urllib2 import HTTPError
 
 from public_rest.core_interface import Interface
+from settings import MAILMAN_API_URL, MAILMAN_USER, MAILMAN_PASS
 
-MAILMAN_API_URL = 'http://localhost:8001'
-MAILMAN_USER = 'restadmin'
-MAILMAN_PASS = 'restpass'
+
 interface = Interface('%s/3.0/' % MAILMAN_API_URL, name=MAILMAN_USER, password=MAILMAN_PASS)
 
 class BaseModel(models.Model):
