@@ -23,9 +23,13 @@ class MembershipSerializer(serializers.HyperlinkedModelSerializer):
 
 class MailingListSerializer(serializers.HyperlinkedModelSerializer):
 
+    # Read-only
     members = serializers.Field('members')
     owners = serializers.Field('owners')
     moderators = serializers.Field('moderators')
+    membership_set = serializers.Field('membership_set.all')
+    fqdn_listname = serializers.Field('fqdn_listname')
+    #XXX: mail_host should only be writable at creation time.
 
     class Meta:
         model = MailingList
