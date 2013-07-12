@@ -26,3 +26,36 @@ and "next", which turn into follow up links to previous/next pages, otherwise, a
 
         9. /users/?list=test@mail.example.com : All users which are subscribed to the given list "test@mail.example.com"
                                                  
+
+MailingList
+-----------
+        1. /lists/              :               Collection of all mailing lists.
+        
+        2. /lists/?fqdn_listname='test@mail.example.com' : Collection (of 1 list), which has the given FQDN.
+        
+        3. /lists/?mail_host='mail.example.com'          : Collection of all lists @ the given mail host.
+
+        4. /lists/?user=naeblis or /lists/?user=naeblis.echo@gmail.com : All lists which the given user is subscribed to.
+
+        5. /lists/?display_name='test'
+
+        6. /lists/?user=superman&owner=true
+
+        7. /lists/?user=batman&moderator=true
+
+        8. /lists/?user=robin&member=true 
+        
+        (If any of those booleans are false, do a reverse search, excluding from that particular parameter)
+
+        9. Pagination just like in Users.
+
+
+Membership
+----------
+
+        1. /memberships/        : Collection of All Memberships
+
+        2. /memberships/?fqdn_listname=test@mail.example.com    : Memberships on given list.
+
+        3. /memberships/?user=manish_gill                       : All Memberships of the given user
+
