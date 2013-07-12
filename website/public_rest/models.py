@@ -8,9 +8,17 @@ from django.db import models
 from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from urllib2 import HTTPError
 
+from public_rest.core_interface import Interface
+
+MAILMAN_API_URL = 'http://localhost:8001'
+MAILMAN_USER = 'restadmin'
+MAILMAN_PASS = 'restpass'
+interface = Interface('%s/3.0/' % MAILMAN_API_URL, name=MAILMAN_USER, password=MAILMAN_PASS)
 
 class BaseModel(models.Model):
+
     class Meta:
         abstract = True
 
@@ -328,8 +336,18 @@ class Email(models.Model):
     def __unicode__(self):
         return self.address
 
+
 class UserManager(BaseUserManager):
+
     def create_user(self, display_name, email, password):
+        # First, create the User at Core
+        try:
+            u = interface.create_user(email, password, display_name)
+        except HTTPError:
+            print("Error: Could not connect to the Core database!")
+        except Exception as e:
+            print("{0}-{1}".format(type(e), str(e)))
+
         if not display_name:
             raise ValueError("No display_name Provided!")
         if not password:
@@ -347,6 +365,11 @@ class UserManager(BaseUserManager):
         user.is_superuser=True
         user.save(using=self._db)
         return user
+
+    def core(self):
+        """User.objects.core() returns all Users from Core"""
+        return interface.users
+
 
 class AbstractUser(AbstractBaseUser, PermissionsMixin):
     class Meta:
