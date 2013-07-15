@@ -35,10 +35,12 @@ MailingList
         
         3. /lists/?mail_host='mail.example.com'          : Collection of all lists @ the given mail host.
 
-        4. /lists/?user=naeblis or /lists/?user=naeblis.echo@gmail.com : All lists which the given user is subscribed to.
+        4. /lists/?user=naeblis or /lists/?email=naeblis.echo@gmail.com : All lists which the given user is subscribed to.
 
         5. /lists/?display_name='test'
 
+        # the user query parameter here has the display_name for now, but that
+        # might change to user_id or sequence id (from the Queryset).
         6. /lists/?user=superman&owner=true
 
         7. /lists/?user=batman&moderator=true
