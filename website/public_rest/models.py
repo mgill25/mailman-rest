@@ -327,10 +327,12 @@ class Email(models.Model):
 
     def save(self, *args, **kwargs):
         if self.pk is None:
+            super(Email, self).save(*args, **kwargs)
             if self.user.preferred_email is None:
                 self.user.preferred_email = self
                 self.user.save()
-        super(Email, self).save(*args, **kwargs)
+        else:
+            super(Email, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return self.address
