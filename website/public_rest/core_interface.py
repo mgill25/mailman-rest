@@ -209,12 +209,12 @@ class _User(object):
             self._subscription_list_ids = list_ids
         return self._subscription_list_ids
 
-    #@property
-    #def preferences(self):
-    #    if self._preferences is None:
-    #        path = 'users/{0}/preferences'.format(self.user_id)
-    #        self._preferences = _Preferences(self.connection, path)
-    #    return self._preferences
+    @property
+    def preferences(self):
+        if self._preferences is None:
+            path = 'users/{0}/preferences'.format(self.user_id)
+            self._preferences = _Preferences(self.connection, path)
+        return self._preferences
 
     def save(self):
         data = {'display_name': self.display_name}
@@ -227,5 +227,63 @@ class _User(object):
 
     def delete(self):
         response, content = self.connection.call(self._url, method='DELETE')
+
+
+PREFERENCE_FIELDS = (
+    'acknowledge_posts',
+    'delivery_mode',
+    'delivery_status',
+    'hide_address',
+    'preferred_language',
+    'receive_list_copy',
+    'receive_own_postings', )
+
+
+class _Preferences:
+    def __init__(self, connection, url):
+        self._connection = connection
+        self._url = url
+        self._preferences = None
+        self.delivery_mode = None
+        self._get_preferences()
+
+    def __repr__(self):
+        return repr(self._preferences)
+
+    def _get_preferences(self):
+        if self._preferences is None:
+            response, content = self._connection.call(self._url)
+            self._preferences = content
+            for key in PREFERENCE_FIELDS:
+                self._preferences[key] = content.get(key)
+
+    def __setitem__(self, key, value):
+        self._preferences[key] = value
+
+    def __getitem__(self, key):
+        return self._preferences[key]
+
+    def __iter__(self):
+        for key in self._preferences.keys():
+            yield self._preferences[key]
+
+    def __len__(self):
+        return len(self._preferences)
+
+    def get(self, key, default=None):
+        try:
+            return self._preferences[key]
+        except KeyError:
+            return default
+
+    def keys(self):
+        return self._preferences.keys()
+
+    def save(self):
+        data = {}
+        for key in self._preferences:
+            if self._preferences[key] is not None:
+                data[key] = self._preferences[key]
+        response, content = self._connection.call(self._url, data, 'PUT')
 
 
