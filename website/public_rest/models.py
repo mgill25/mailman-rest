@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -341,18 +343,17 @@ class Email(models.Model):
 class UserManager(BaseUserManager):
 
     def create_user(self, display_name, email, password):
-        # First, create the User at Core
-        try:
-            u = interface.create_user(email, password, display_name)
-        except HTTPError:
-            print("Error: Could not connect to the Core database!")
-        except Exception as e:
-            print("{0}-{1}".format(type(e), str(e)))
-
         if not display_name:
             raise ValueError("No display_name Provided!")
         if not password:
             raise ValueError("No Password Provided!")
+        # Create the User at Core
+        try:
+            self.model.peer = interface.create_user(email, password, display_name)
+        except HTTPError as e:
+            print("Error: {0}".format(e.msg))
+        except Exception as e:
+            print("{0}-{1}".format(type(e), str(e)))
         user = self.model(display_name=display_name)
         user.save()
         user.add_email(email)
@@ -385,6 +386,11 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     preferred_email = models.OneToOneField(Email, null=True,
                                            related_name='%(class)s_preferred')
+    peer_user_id = models.CharField(max_length=40, null=True)
+    peer_url = models.URLField(null=True, help_text=_('URL of the Interface to connect to'
+                               ' in order to get the corresponding object at the Peer (Core)'))
+    peer_etag = models.CharField(max_length=50, help_text=_('ETag of the Peer object'))
+    #TODO peer_expiration_timestamp = models.DateTimeField(null=True)
 
     USERNAME_FIELD = 'display_name'
     REQUIRED_FIELDS = []
@@ -435,9 +441,47 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     def __unicode__(self):
         return self.display_name
 
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            if self.peer:
+                # Store the info from the peer (Core)
+                self.peer_user_id = str(self.peer.user_id)
+                self.peer_url = self.peer.self_link
+                self.peer_etag = self.peer.preferences['http_etag']
+            super(AbstractUser, self).save(*args, **kwargs)
+        else:
+            if self.peer_user_id:
+                # Update info at the Core as well
+                u = interface.get_user(self.peer_user_id)
+                if u and u.display_name:
+                    u.display_name = self.display_name
+                    u.save()
+            super(AbstractUser, self).save(*args, **kwargs)
+
 
 class User(AbstractUser):
     pass
+
+#@receiver(post_save, sender=User)
+#def user_post_save_handler(sender, **kwargs):
+#    """
+#    Post save handler to update an object's
+#    properties at Mailman Core.
+#    """
+#    #post_save.disconnect(user_post_save_handler, sender=User)
+#    instance = kwargs.get('instance')
+#    if kwargs.get('created', False) is False:
+#        if instance.preferred_email:
+#            address = instance.preferred_email.address
+#        else:
+#            address = instance.emails[0].address
+#        u = interface.get_user(address)
+#        if u and instance:
+#            if u.display_name:
+#                u.display_name = instance.display_name
+#            u.save()
+#    #post_save.connect(user_post_save_handler, sender=User)
+#
 
 # Membership Preferences
 class BaseMembershipPrefs(BaseModel):
