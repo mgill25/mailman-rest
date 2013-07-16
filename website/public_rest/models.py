@@ -373,7 +373,7 @@ class UserManager(BaseUserManager):
         return interface.users
 
 
-class AbstractUser(AbstractBaseUser, PermissionsMixin):
+class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     class Meta:
         abstract = True
 
@@ -483,8 +483,7 @@ class User(AbstractUser):
 #    #post_save.connect(user_post_save_handler, sender=User)
 #
 
-# Membership Preferences
-class BaseMembershipPrefs(BaseModel):
+class BasePrefs(BaseModel):
     class Meta:
         abstract = True
 
@@ -495,7 +494,6 @@ class BaseMembershipPrefs(BaseModel):
     preferred_language = models.CharField(max_length=50, blank=True)
     receive_list_copy = models.NullBooleanField()
     receive_own_postings = models.NullBooleanField()
-    membership = models.OneToOneField('Membership')
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -503,6 +501,17 @@ class BaseMembershipPrefs(BaseModel):
     def __setitem__(self, key, val):
         setattr(self, key, val)
         self.save()
+
+
+class UserPrefs(BasePrefs):
+    user = models.OneToOneField(User)
+
+
+# Membership Preferences
+class BaseMembershipPrefs(BasePrefs):
+    membership = models.OneToOneField('Membership')
+    class Meta:
+        abstract = True
 
 
 class OwnerPrefs(BaseMembershipPrefs):
