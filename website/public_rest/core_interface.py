@@ -102,6 +102,15 @@ class Interface(object):
     def __repr__(self):
         return '<Interface {0.baseurl} ({0.name}:{0.password})>'.format(self.connection)
 
+    def get_from_url(self, url):
+        """
+        Generic function. Get response from the API and wrap it using proxy objects.
+        """
+        if 'users' in url:
+            return _User(self.connection, url)
+        elif 'lists' in url:
+            return _List(self.connection, url)
+
     @property
     def system(self):
         return self.connection.call('system')[1]

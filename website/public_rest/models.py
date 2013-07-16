@@ -20,6 +20,14 @@ interface = Interface('%s/3.0/' % MAILMAN_API_URL, name=MAILMAN_USER, password=M
 
 class BaseModel(models.Model):
 
+    def get_peer(self, url):
+        """
+        For every generic "First class" model, use the peer_url to make the call
+        and wrap the result in the corresponding proxy object. _User for User,
+        _List for MailingList etc.
+        """
+        return interface.get_from_url(url)
+
     class Meta:
         abstract = True
 
@@ -159,6 +167,10 @@ class ListSettings(ListParametersMixin):
         if created:
             a.save()
 
+    def __iter__(self):
+        for field in self._meta.fields:
+            yield field.name, getattr(self, field.name)
+
     def __getitem__(self, key):
         return getattr(self, key)
 
@@ -221,6 +233,29 @@ class CoreListMixin(models.Model):
 
 class LocalListMixin(models.Model):
     """Fields that are added by us, locally."""
+
+    peer_url = models.URLField()
+    peer_etag = models.CharField(max_length=50)
+
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            # Create a new list at the given mail_host Domain
+            domain = interface.get_domain(mail_host=self.mail_host)
+            if domain:
+                peer_list = domain.create_list(self.list_name)
+                print("Peer_list:", peer_list)
+                self.peer_url = peer_list._info['self_link']
+                self.peer_etag = peer_list._info['http_etag']
+            super(LocalListMixin, self).save(*args, **kwargs)
+        else:
+            # Update List settings as well.
+            peer_list = self.get_peer(self.peer_url)
+            for setting_name, setting_val in self.settings:
+                peer_list.settings[setting_name] = setting_val
+            peer_list.settings.save()
+            super(LocalListMixin, self).save(*args, **kwargs)
+
     class Meta:
         abstract = True
 
@@ -447,13 +482,15 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
                 # Store the info from the peer (Core)
                 self.peer_user_id = str(self.peer.user_id)
                 self.peer_url = self.peer.self_link
-                self.peer_etag = self.peer.preferences['http_etag']
             super(AbstractUser, self).save(*args, **kwargs)
+            self.prefs = UserPrefs(user=self)
+            self.prefs.peer_etag = self.peer.preferences['http_etag']
+            self.prefs.save()
         else:
-            if self.peer_user_id:
+            if self.peer_url:
                 # Update info at the Core as well
-                u = interface.get_user(self.peer_user_id)
-                if u and u.display_name:
+                u = self.get_peer(self.peer_url)
+                if u:
                     u.display_name = self.display_name
                     u.save()
             super(AbstractUser, self).save(*args, **kwargs)
