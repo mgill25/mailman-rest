@@ -131,7 +131,7 @@ class _User(object):
     def __init__(self, connection, url):
         self.connection = connection
         self._url = url
-        self._info = None
+        self._info = {}
         self._addresses = None
         self._subscriptions = None
         self._subscription_list_ids = None
@@ -143,7 +143,7 @@ class _User(object):
             self.display_name, self.user_id)
 
     def _get_info(self):
-        if self._info is None:
+        if not self._info:
             response, content = self.connection.call(self._url)
             self._info = content
 
