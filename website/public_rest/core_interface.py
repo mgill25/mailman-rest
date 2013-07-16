@@ -126,6 +126,39 @@ class Interface(object):
                           display_name=display_name))
         return _User(self.connection, response['location'])
 
+    @property
+    def lists(self):
+        response, content = self.connection.call('lists')
+        if 'entries' not in content:
+            return []
+        return [_List(self.connection, entry['self_link'])
+                for entry in content['entries']]
+
+    @property
+    def domains(self):
+        response, content = self.connection.call('domains')
+        if 'entries' not in content:
+            return []
+        return [_Domain(self.connection, entry['self_link'])
+                for entry in sorted(content['entries'],
+                                    key=itemgetter('url_host'))]
+
+    def get_domain(self, mail_host=None, web_host=None):
+        """Get domain by its mail_host or its web_host."""
+        if mail_host is not None:
+            response, content = self.connection.call(
+                'domains/{0}'.format(mail_host))
+            return _Domain(self.connection, content['self_link'])
+        elif web_host is not None:
+            for domain in self.domains:
+                # note: `base_url` property will be renamed to `web_host`
+                # in Mailman3Alpha8
+                if domain.base_url == web_host:
+                    return domain
+                    break
+            else:
+                return None
+
 
 class _User(object):
     def __init__(self, connection, url):
