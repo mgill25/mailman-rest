@@ -179,7 +179,8 @@ class ListSettings(ListParametersMixin):
             peer_list = self.mailinglist.get_peer()
             peer_settings = peer_list.settings
             for setting_name, setting_val in self.mailinglist.settings:
-                peer_settings[setting_name] = setting_val
+                if setting_name != u'id':
+                    peer_settings[setting_name] = setting_val
             peer_settings.save()
             super(ListSettings, self).save(*args, **kwargs)
 
