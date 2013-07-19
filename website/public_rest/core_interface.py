@@ -639,14 +639,14 @@ class SettingsPeer:
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url
-        self._info = None
+        self._info = {}
         self._get_info()
 
     def __repr__(self):
         return repr(self._info)
 
     def _get_info(self):
-        if self._info is None:
+        if not self._info:
             response, content = self._connection.call(self._url)
             self._info = content
 

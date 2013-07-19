@@ -171,6 +171,18 @@ class ListSettings(ListParametersMixin):
         setattr(self, key, val)
         self.save()
 
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            super(ListSettings, self).save(*args, **kwargs)
+        else:
+            # Update peer settings as well!
+            peer_list = self.mailinglist.get_peer()
+            peer_settings = peer_list.settings
+            for setting_name, setting_val in self.mailinglist.settings:
+                peer_settings[setting_name] = setting_val
+            peer_settings.save()
+            super(ListSettings, self).save(*args, **kwargs)
+
 
 # Mailing List
 class AbstractBaseList(BaseModel):
@@ -240,16 +252,10 @@ class LocalListMixin(models.Model):
             domain = interface.get_domain(mail_host=self.mail_host)
             if domain:
                 peer_list = domain.create_list(self.list_name)
-                print("Peer_list:", peer_list)
                 self.peer_url = peer_list._info['self_link']
                 self.peer_etag = peer_list._info['http_etag']
             super(LocalListMixin, self).save(*args, **kwargs)
         else:
-            # Update List settings as well.
-            peer_list = self.get_peer()
-            for setting_name, setting_val in self.settings:
-                peer_list.settings[setting_name] = setting_val
-            peer_list.settings.save()
             super(LocalListMixin, self).save(*args, **kwargs)
 
     class Meta:
