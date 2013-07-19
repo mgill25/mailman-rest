@@ -107,9 +107,9 @@ class Interface(object):
         Generic function. Get response from the API and wrap it using proxy objects.
         """
         if 'users' in url:
-            return _User(self.connection, url)
+            return UserPeer(self.connection, url)
         elif 'lists' in url:
-            return _List(self.connection, url)
+            return ListPeer(self.connection, url)
 
     @property
     def system(self):
@@ -120,27 +120,27 @@ class Interface(object):
         response, content = self.connection.call('users')
         if 'entries' not in content:
             return []
-        return [_User(self.connection, entry['self_link'])
+        return [UserPeer(self.connection, entry['self_link'])
                 for entry in sorted(content['entries'],
                                     key=itemgetter('self_link'))]
 
     def get_user(self, address):
         response, content = self.connection.call(
             'users/{0}'.format(address))
-        return _User(self.connection, content['self_link'])
+        return UserPeer(self.connection, content['self_link'])
 
     def create_user(self, email, password, display_name=''):
         response, content = self.connection.call(
             'users', dict(email=email, password=password,
                           display_name=display_name))
-        return _User(self.connection, response['location'])
+        return UserPeer(self.connection, response['location'])
 
     @property
     def lists(self):
         response, content = self.connection.call('lists')
         if 'entries' not in content:
             return []
-        return [_List(self.connection, entry['self_link'])
+        return [ListPeer(self.connection, entry['self_link'])
                 for entry in content['entries']]
 
     @property
@@ -148,7 +148,7 @@ class Interface(object):
         response, content = self.connection.call('domains')
         if 'entries' not in content:
             return []
-        return [_Domain(self.connection, entry['self_link'])
+        return [DomainPeer(self.connection, entry['self_link'])
                 for entry in sorted(content['entries'],
                                     key=itemgetter('url_host'))]
 
@@ -157,7 +157,7 @@ class Interface(object):
         if mail_host is not None:
             response, content = self.connection.call(
                 'domains/{0}'.format(mail_host))
-            return _Domain(self.connection, content['self_link'])
+            return DomainPeer(self.connection, content['self_link'])
         elif web_host is not None:
             for domain in self.domains:
                 # note: `base_url` property will be renamed to `web_host`
@@ -169,7 +169,7 @@ class Interface(object):
                 return None
 
 
-class _User(object):
+class UserPeer(object):
     def __init__(self, connection, url):
         self.connection = connection
         self._url = url
@@ -255,7 +255,7 @@ class _User(object):
     def preferences(self):
         if self._preferences is None:
             path = 'users/{0}/preferences'.format(self.user_id)
-            self._preferences = _Preferences(self.connection, path)
+            self._preferences = PreferencesPeer(self.connection, path)
         return self._preferences
 
     def save(self):
@@ -281,7 +281,7 @@ PREFERENCE_FIELDS = (
     'receive_own_postings', )
 
 
-class _Preferences:
+class PreferencesPeer:
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url
@@ -328,7 +328,7 @@ class _Preferences:
                 data[key] = self._preferences[key]
         response, content = self._connection.call(self._url, data, 'PUT')
 
-class _Domain:
+class DomainPeer:
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url
@@ -375,7 +375,7 @@ class _Domain:
             'domains/{0}/lists'.format(self.mail_host))
         if 'entries' not in content:
             return []
-        return [_List(self._connection, entry['self_link'])
+        return [ListPeer(self._connection, entry['self_link'])
                 for entry in sorted(content['entries'],
                                     key=itemgetter('fqdn_listname'))]
 
@@ -383,7 +383,7 @@ class _Domain:
         fqdn_listname = '{0}@{1}'.format(list_name, self.mail_host)
         response, content = self._connection.call(
             'lists', dict(fqdn_listname=fqdn_listname))
-        return _List(self._connection, response['location'])
+        return ListPeer(self._connection, response['location'])
 
     def get_or_create(self, listname):
         """Get or create a list"""
@@ -394,10 +394,10 @@ class _Domain:
         else:
             for entry in content['entries']:
                 if entry['list_name'] == listname:
-                    return _List(self._connection, entry['self_link'])
+                    return ListPeer(self._connection, entry['self_link'])
 
 
-class _List:
+class ListPeer:
     def __init__(self, connection, url, data=None):
         self._connection = connection
         self._url = url
@@ -472,7 +472,7 @@ class _List:
 
     @property
     def settings(self):
-        return _Settings(self._connection,
+        return SettingsPeer(self._connection,
                          'lists/{0}/config'.format(self.fqdn_listname))
 
     @property
@@ -635,7 +635,7 @@ LIST_READ_ONLY_ATTRS = ('bounces_address', 'created_at', 'digest_last_sent_at',
                         'posting_address', 'request_address', 'scheme',
                         'volume', 'web_host',)
 
-class _Settings:
+class SettingsPeer:
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url
