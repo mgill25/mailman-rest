@@ -498,26 +498,6 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
 class User(AbstractUser):
     pass
 
-#@receiver(post_save, sender=User)
-#def user_post_save_handler(sender, **kwargs):
-#    """
-#    Post save handler to update an object's
-#    properties at Mailman Core.
-#    """
-#    #post_save.disconnect(user_post_save_handler, sender=User)
-#    instance = kwargs.get('instance')
-#    if kwargs.get('created', False) is False:
-#        if instance.preferred_email:
-#            address = instance.preferred_email.address
-#        else:
-#            address = instance.emails[0].address
-#        u = interface.get_user(address)
-#        if u and instance:
-#            if u.display_name:
-#                u.display_name = instance.display_name
-#            u.save()
-#    #post_save.connect(user_post_save_handler, sender=User)
-#
 
 class BasePrefs(BaseModel):
     class Meta:
