@@ -12,21 +12,14 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from urllib2 import HTTPError
 
-from public_rest.core_interface import Interface
+from public_rest.core_interface import *
 from settings import MAILMAN_API_URL, MAILMAN_USER, MAILMAN_PASS
 
 
 interface = Interface('%s/3.0/' % MAILMAN_API_URL, name=MAILMAN_USER, password=MAILMAN_PASS)
+conn = Connection('%s/3.0/' % MAILMAN_API_URL, name=MAILMAN_USER, password=MAILMAN_PASS)
 
 class BaseModel(models.Model):
-
-    def get_peer(self, url):
-        """
-        For every generic "First class" model, use the peer_url to make the call
-        and wrap the result in the corresponding proxy object. _User for User,
-        _List for MailingList etc.
-        """
-        return interface.get_from_url(url)
 
     class Meta:
         abstract = True
@@ -238,6 +231,9 @@ class LocalListMixin(models.Model):
     peer_etag = models.CharField(max_length=50)
 
 
+    def get_peer(self):
+        return ListPeer(conn, self.peer_url)
+
     def save(self, *args, **kwargs):
         if self.pk is None:
             # Create a new list at the given mail_host Domain
@@ -250,7 +246,7 @@ class LocalListMixin(models.Model):
             super(LocalListMixin, self).save(*args, **kwargs)
         else:
             # Update List settings as well.
-            peer_list = self.get_peer(self.peer_url)
+            peer_list = self.get_peer()
             for setting_name, setting_val in self.settings:
                 peer_list.settings[setting_name] = setting_val
             peer_list.settings.save()
@@ -476,6 +472,9 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     def __unicode__(self):
         return self.display_name
 
+    def get_peer(self):
+        return UserPeer(conn, self.peer_url)
+
     def save(self, *args, **kwargs):
         if self.pk is None:
             if self.peer:
@@ -489,7 +488,7 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
         else:
             if self.peer_url:
                 # Update info at the Core as well
-                u = self.get_peer(self.peer_url)
+                u = self.get_peer()
                 if u:
                     u.display_name = self.display_name
                     u.save()
