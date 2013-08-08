@@ -12,7 +12,9 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from urllib2 import HTTPError
 
-from public_rest.core_interface import *
+from public_rest.adaptors import *
+from public_rest.interface import *
+
 from settings import MAILMAN_API_URL, MAILMAN_USER, MAILMAN_PASS
 
 
