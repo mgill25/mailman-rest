@@ -11,165 +11,89 @@ from urllib import urlencode
 from urllib2 import HTTPError
 from urlparse import urljoin
 
+from interface import *
 
-__version__ = '0.01'
+class BaseAdaptor(AbstractRemotelyBackedObject):
+    """
+    An adaptor is a remotely backed object, which will
+    contain information that relates back to the lower
+    layers via HTTP.
 
-class MailmanConnectionError(Exception):
-    """Custom exception to catch Connection errors"""
+    Getting/Saving an adaptor triggers corresponding
+    HTTP requests for the same object (or multiple remote
+    objects representing it) at remote.
+
+    The primary link is the `partial_URL` field for every
+    remotely backed object.
+
+    """
+    #XXX: Save everything or delegate everything or handle per-object?
     pass
 
-class Connection:
-    """A connection to the REST client."""
 
-    def __init__(self, baseurl, name=None, password=None):
-        """Initialize a connection to the REST API.
-
-        :param baseurl: The base url to access the Mailman 3 REST API.
-        :param name: The Basic Auth user name.  If given, the `password` must
-            also be given.
-        :param password: The Basic Auth password.  If given the `name` must
-            also be given.
-        """
-        if baseurl[-1] != '/':
-            baseurl += '/'
-        self.baseurl = baseurl
-        self.name = name
-        self.password = password
-        if name is not None and password is None:
-            raise TypeError('`password` is required when `name` is given')
-        if name is None and password is not None:
-            raise TypeError('`name` is required when `password` is given')
-        if name is None:
-            self.basic_auth = None
-        else:
-            auth = '{0}:{1}'.format(name, password)
-            self.basic_auth = b64encode(auth)
-
-    def call(self, path, data=None, method=None):
-        """Make a call to the Mailman REST API.
-
-        :param path: The url path to the resource.
-        :type path: str
-        :param data: Data to send, implies POST (default) or PUT.
-        :type data: dict
-        :param method: The HTTP method to call.  Defaults to GET when `data`
-            is None or POST if `data` is given.
-        :type method: str
-        :return: The response content, which will be None, a dictionary, or a
-            list depending on the actual JSON type returned.
-        :rtype: None, list, dict
-        :raises HTTPError: when a non-2xx status code is returned.
-        """
-        headers = {
-            'User-Agent': 'GNU Mailman REST client v{0}'.format(__version__),
-        }
-        if data is not None:
-            data = urlencode(data, doseq=True)
-            headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        if method is None:
-            if data is None:
-                method = 'GET'
-            else:
-                method = 'POST'
-        method = method.upper()
-        if self.basic_auth:
-            headers['Authorization'] = 'Basic ' + self.basic_auth
-        url = urljoin(self.baseurl, path)
-        try:
-            response, content = Http().request(url, method, data, headers)
-            # If we did not get a 2xx status code, make this look like a
-            # urllib2 exception, for backward compatibility.
-            if response.status // 100 != 2:
-                raise HTTPError(url, response.status, content, response, None)
-            if len(content) == 0:
-                return response, None
-            # XXX Work around for http://bugs.python.org/issue10038
-            content = unicode(content)
-            return response, json.loads(content)
-        except HTTPError:
-            raise
-        except IOError:
-            raise MailmanConnectionError('Could not connect to Mailman API')
-
-class Interface(object):
+class SplitAdaptor(BaseAdaptor):
     """
-    An Interface to connect to the Core
+    An Adaptor layer that splits the data into different locations.
+    Object X can be divided into object Y and Z, both being stored
+    at different locations.
+
+    Create an object with `local` and `remote` arguments,
+    which represent the layers where the fields should be saved.
+
+    `save_local` and `save_remote` represent the functions for saving
+    the data at one of those locations. These functions take a list
+    of `fields`, which are then saved on the corresponsing object.
     """
+    def __init__(self, *args, **kwargs):
+        # These adaptors are also models
+        super(SplitAdaptor).__init__(*args, **kwargs)
+        if kwargs.get('local', None) and kwargs.get('remote', None):
+            self.local = kwargs['local']
+            self.remote = kwargs['remote']
 
-    def __init__(self, baseurl, name=None, password=None):
-        self.connection = Connection(baseurl, name=name, password=password)
-
-    def __repr__(self):
-        return '<Interface {0.baseurl} ({0.name}:{0.password})>'.format(self.connection)
-
-    def get_from_url(self, url):
+    def split_and_save(self, using=None):
         """
-        Generic function. Get response from the API and wrap it using proxy objects.
+        Split up the fields for a given object
+        and perform `save_local` and `save_remote` on them.
         """
-        if 'users' in url:
-            return UserPeer(self.connection, url)
-        elif 'lists' in url:
-            return ListPeer(self.connection, url)
+        pass
 
-    @property
-    def system(self):
-        return self.connection.call('system')[1]
+    def save_local(self, using=None, *fields):
+        """
+        Save the given fields locally.
+        """
+        local_object = self.local.__class__()
+        for field_name in self.fields:
+            if field_name in fields:
+                field_val = getattr(self, field_name)
+                setattr(local_object, field_name, field_val)
+        local_object.save(using=using)
 
-    @property
-    def users(self):
-        response, content = self.connection.call('users')
-        if 'entries' not in content:
-            return []
-        return [UserPeer(self.connection, entry['self_link'])
-                for entry in sorted(content['entries'],
-                                    key=itemgetter('self_link'))]
-
-    def get_user(self, address):
-        response, content = self.connection.call(
-            'users/{0}'.format(address))
-        return UserPeer(self.connection, content['self_link'])
-
-    def create_user(self, email, password, display_name=''):
-        response, content = self.connection.call(
-            'users', dict(email=email, password=password,
-                          display_name=display_name))
-        return UserPeer(self.connection, response['location'])
-
-    @property
-    def lists(self):
-        response, content = self.connection.call('lists')
-        if 'entries' not in content:
-            return []
-        return [ListPeer(self.connection, entry['self_link'])
-                for entry in content['entries']]
-
-    @property
-    def domains(self):
-        response, content = self.connection.call('domains')
-        if 'entries' not in content:
-            return []
-        return [DomainPeer(self.connection, entry['self_link'])
-                for entry in sorted(content['entries'],
-                                    key=itemgetter('url_host'))]
-
-    def get_domain(self, mail_host=None, web_host=None):
-        """Get domain by its mail_host or its web_host."""
-        if mail_host is not None:
-            response, content = self.connection.call(
-                'domains/{0}'.format(mail_host))
-            return DomainPeer(self.connection, content['self_link'])
-        elif web_host is not None:
-            for domain in self.domains:
-                # note: `base_url` property will be renamed to `web_host`
-                # in Mailman3Alpha8
-                if domain.base_url == web_host:
-                    return domain
-                    break
-            else:
-                return None
+    def save_remote(self, using=None, *fields):
+        """
+        Save the fields remotely.
+        """
+        remote_url = getattr(self, partial_URL, None)
+        if remote_url:
+            # Create an Interface for that URL and save the fields.
+            i = Interface(base_url=remote_url)
+            # Now, we create a pseudo-object from the ModelAdaptors.
+            remote_adaptor = get_object_adaptor(self.object_type)
+            for field_name in self.fields:
+                if field_name in fields:
+                    field_val = getattr(self, field_name)
+                    setattr(remote_adaptor, field_name, field_val)
+            remote_adaptor.save(using=using)
 
 
-class UserPeer(object):
+class DomainAdaptor(BaseAdaptor):
+    base_url = models.URLField()
+    mail_host = models.CharField(max_length=100)
+    description = models.TextField()
+    contact_address = models.EmailField()
+
+'''
+class UserAdaptor(BaseAdaptor):
     def __init__(self, connection, url):
         self.connection = connection
         self._url = url
@@ -255,7 +179,7 @@ class UserPeer(object):
     def preferences(self):
         if self._preferences is None:
             path = 'users/{0}/preferences'.format(self.user_id)
-            self._preferences = PreferencesPeer(self.connection, path)
+            self._preferences = PreferencesAdaptor(self.connection, path)
         return self._preferences
 
     def save(self):
@@ -281,7 +205,7 @@ PREFERENCE_FIELDS = (
     'receive_own_postings', )
 
 
-class PreferencesPeer:
+class PreferencesAdaptor(BaseAdaptor):
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url
@@ -328,19 +252,25 @@ class PreferencesPeer:
                 data[key] = self._preferences[key]
         response, content = self._connection.call(self._url, data, 'PUT')
 
-class DomainPeer:
+
+class DomainAdaptor(AbstractRemotelyBackedObject):
+    """
+    An Adaptor, which does the job of wrapping and unwrapping
+    of data b/w the two layers.
+    """
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url
         self._info = None
 
+
     def __repr__(self):
-        return '<Domain "{0}">'.format(self.mail_host)
+        return '<DomainAdaptor "{0}">'.format(self.mail_host)
 
     def _get_info(self):
         if self._info is None:
             response, content = self._connection.call(self._url)
-            self._info = content
+            self._info = content.json
 
     # note: `base_url` property will be renamed to `web_host`
     # in Mailman3Alpha8
@@ -375,7 +305,7 @@ class DomainPeer:
             'domains/{0}/lists'.format(self.mail_host))
         if 'entries' not in content:
             return []
-        return [ListPeer(self._connection, entry['self_link'])
+        return [ListAdaptor(self._connection, entry['self_link'])
                 for entry in sorted(content['entries'],
                                     key=itemgetter('fqdn_listname'))]
 
@@ -383,7 +313,7 @@ class DomainPeer:
         fqdn_listname = '{0}@{1}'.format(list_name, self.mail_host)
         response, content = self._connection.call(
             'lists', dict(fqdn_listname=fqdn_listname))
-        return ListPeer(self._connection, response['location'])
+        return ListAdaptor(self._connection, response['location'])
 
     def get_or_create(self, listname):
         """Get or create a list"""
@@ -394,10 +324,10 @@ class DomainPeer:
         else:
             for entry in content['entries']:
                 if entry['list_name'] == listname:
-                    return ListPeer(self._connection, entry['self_link'])
+                    return ListAdaptor(self._connection, entry['self_link'])
 
 
-class ListPeer:
+class ListAdaptor(BaseAdaptor):
     def __init__(self, connection, url, data=None):
         self._connection = connection
         self._url = url
@@ -472,7 +402,7 @@ class ListPeer:
 
     @property
     def settings(self):
-        return SettingsPeer(self._connection,
+        return SettingsAdaptor(self._connection,
                          'lists/{0}/config'.format(self.fqdn_listname))
 
     @property
@@ -635,7 +565,7 @@ LIST_READ_ONLY_ATTRS = ('bounces_address', 'created_at', 'digest_last_sent_at',
                         'posting_address', 'request_address', 'scheme',
                         'volume', 'web_host',)
 
-class SettingsPeer:
+class SettingsAdaptor(BaseAdaptor):
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url
@@ -679,4 +609,4 @@ class SettingsPeer:
                 data[attribute] = value
         response, content = self._connection.call(self._url, data, 'PATCH')
 
-
+'''

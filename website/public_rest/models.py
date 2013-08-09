@@ -14,12 +14,13 @@ from urllib2 import HTTPError
 
 from public_rest.adaptors import *
 from public_rest.interface import *
+from public_rest.api import *
 
 from settings import MAILMAN_API_URL, MAILMAN_USER, MAILMAN_PASS
 
 
-interface = Interface('%s/3.0/' % MAILMAN_API_URL, name=MAILMAN_USER, password=MAILMAN_PASS)
-conn = Connection('%s/3.0/' % MAILMAN_API_URL, name=MAILMAN_USER, password=MAILMAN_PASS)
+interface = CoreInterface('%s/3.0/' % MAILMAN_API_URL)
+conn = Connection('%s/3.0/' % MAILMAN_API_URL)
 
 class BaseModel(models.Model):
 
@@ -320,7 +321,7 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     def get_member(self, address):
         return self.membership_set.get(address=address)
 
-class MailingList(AbstractMailingList):
+class MailingList(AbstractMailingList, AbstractLocallyBackedObject):
     class Meta:
         swappable = 'MAILINGLIST_MODEL'
 
@@ -335,7 +336,7 @@ class DomainManager(models.Manager):
         return rv
 
 
-class Domain(BaseModel):
+class Domain(BaseModel, AbstractLocallyBackedObject):
 
     objects = DomainManager()
 

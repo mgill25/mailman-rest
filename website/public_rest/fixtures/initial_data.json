@@ -1,0 +1,14 @@
+[
+    {
+        "fields": {
+            "is_active": true,
+            "is_staff": true,
+            "is_superuser": true,
+            "user_permissions": [],
+            "password": "pbkdf2_sha256$10000$gVwSLUJ0DDlI$bKYXpEJEs09clGFGjtnXgzv9ZctzcSbWNiWRew4Qhrk=",
+            "display_name": "admin"
+        },
+        "model": "public_rest.user",
+        "pk": 1
+    }
+]

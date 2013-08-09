@@ -15,6 +15,8 @@ from django.db import models
 from django.db.models.query import QuerySet, EmptyQuerySet
 from model_utils.managers import PassThroughManager
 
+from api import CoreInterface, Connection
+
 LayerBelow = { 'rest': 'core' }
 
 
@@ -125,9 +127,18 @@ class AbstractRemotelyBackedObject(AbstractObject):
 
     def process_on_save_signal(self, sender, **kwargs):
         def get_object(instance, url=None, layer=None):
+            """
+            Get an object from the remote url if you can.
+            This Get works via the CoreInterface objects, and if
+            successful, returns the object adaptor.
+            """
             pass
 
         def get_or_create_object(instance, data=None, layer=None):
+            """
+            The Create works in a similar way. If not present, create
+            an object at Remote layer and return the adaptor.
+            """
             pass
 
         # Handle post_save
