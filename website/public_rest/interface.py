@@ -183,7 +183,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             res = get_object(instance, layer=layer)
             if not res:
                 # Push the object on the backer via the REST API.
-                rv_adaptor = ci.create_object(object_type=self.object_type)
+                rv_adaptor = ci.create_object(object_type=self.object_type, data=data)
                 return rv_adaptor
             else:
                 return res

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import logging
 import requests
-from urlparse import urljoin
+from urlparse import urljoin, urlsplit
 
 from django.conf import settings
 
@@ -175,14 +175,13 @@ class CoreInterface(object):
         """
         if partial_url and model:
             return self.get_object_from_url(partial_url=partial_url, model=model)
-        elif model and not partial_url:
-            if kwargs and object_type:
-                #TODO: Have `get_` functions corresponding to each adaptor.
-                imethod = getattr(self, 'get_' + object_type)
-                rv = imethod(**kwargs)
-                return rv
+        elif kwargs and object_type and not partial_url:
+            #TODO: Have `get_` functions corresponding to each adaptor.
+            imethod = getattr(self, 'get_' + object_type)
+            rv = imethod(**kwargs)
+            return rv
 
-    def create_object(self, object_type=None, **kwargs):
+    def create_object(self, model=None, object_type=None, data=None, **kwargs):
         """
         Create a Remote object and return the adaptor.
         """
@@ -190,15 +189,13 @@ class CoreInterface(object):
         # the data. It *might* be the case that an adaptor X
         # is represented by different objects Y and Z at the
         # Mailman Core API.
+        response, content = self.connection.call(object_type, data=data, method='POST')
+        partial_url = urlsplit(response['location']).path
+        return model.adaptor(self.connection, partial_url)
 
-        # First, create an adaptor object with the given data.
-        # Then, POST that data using the adaptor layer.
-        pass
-
-    def update_object(self, partial_url=None, **kwargs):
+    def update_object(self, partial_url=None, model=None, data=None):
         """
-        `PATCH` the API to update objects.
+        `PATCH` the API to update objects (If method allowed)
         """
-        # First, create an adaptor that represents this object.
-        # then, update that adaptor.
-        pass
+        response, content = self.connection.call(partial_url, data=data, method='PATCH')
+        return model.adaptor(self.connection, partial_url)
