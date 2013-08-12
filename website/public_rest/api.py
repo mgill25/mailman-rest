@@ -20,6 +20,9 @@ class MailmanConnectionError(Exception):
 class Connection(object):
     """A connection to the REST client."""
 
+    def __repr__(self):
+        return self.base_url
+
     def __init__(self, base_url=None, name=None, password=None):
         """Initialize a connection to the REST API.
 
@@ -162,47 +165,41 @@ class CoreInterface(object):
             else:
                 return None
 
-    def get_object_from_url(self, partial_url=None, **kwargs):
-        """
-        Given a URL, GET an object, wrap it
-        using its adaptor, and return it.
-        """
-        if partial_url:
-            response, content = self.connection.call(partial_url)
-            #XXX: How to create the corresponding adaptor?
+    def get_object_from_url(self, partial_url, model):
+        if partial_url and model:
+            return model.adaptor(self.connection, partial_url)
 
-
-    def get_object(self, partial_url=None, **kwargs):
+    def get_object(self, partial_url=None, model=None, **kwargs):
         """
-        For the given parameters in the kwargs,
-        get the respective object.
-
-        If `object_type` is 'domains',
-        call self.domains and return results.
-
-        What about if object_type is `domains`, but
-        we need result from `get_domain` ?
+        :kwargs - Data arguments for `get_` functions.
         """
-        # Make the call via URL
-        if partial_url:
-            return self.get_object_from_url(partial_url=partial_url, **kwargs)
-        else:
-            below_key = kwargs.get('below_key')
+        if partial_url and model:
+            return self.get_object_from_url(partial_url=partial_url, model=model)
+        elif model and not partial_url:
             object_type = kwargs.get('object_type')
-            print('key: {0}, type: {1}'.format(below_key, object_type))
-            if below_key and object_type:
-                # Pull the object_type using below_key
-                imethod = getattr(self, object_type)
-                rv = self.imethod(object_type)
+            if kwargs and object_type:
+                #TODO: Have `get_` functions corresponding to each adaptor.
+                imethod = getattr(self.connection, 'get_' + object_type)
+                rv = imethod(**kwargs)
+                return rv
 
     def create_object(self, object_type=None, **kwargs):
         """
         Create a Remote object and return the adaptor.
         """
+        # Each adaptor has its own way of representing
+        # the data. It *might* be the case that an adaptor X
+        # is represented by different objects Y and Z at the
+        # Mailman Core API.
+
+        # First, create an adaptor object with the given data.
+        # Then, POST that data using the adaptor layer.
         pass
 
     def update_object(self, partial_url=None, **kwargs):
         """
         `PATCH` the API to update objects.
         """
+        # First, create an adaptor that represents this object.
+        # then, update that adaptor.
         pass

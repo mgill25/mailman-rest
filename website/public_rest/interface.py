@@ -162,7 +162,9 @@ class AbstractRemotelyBackedObject(AbstractObject):
 
     def process_on_save_signal(self, sender, **kwargs):
         print("Inside AbstractRemotelyBackedObject!")
+
         ci = CoreInterface()
+
         def get_object(instance, url=None, layer=None):
             """
             Returns the ObjectAdaptor.
@@ -170,12 +172,11 @@ class AbstractRemotelyBackedObject(AbstractObject):
             if url is None:
                 if instance.partial_URL:
                     # We already have a partial url in the database.
-                    rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, \
-                            object_type=self.object_type)
+                    rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, model=instance.model)
                 else:
                     field_key = instance.below_key
                     kwds = { field_key : getattr(instance, field_key) }
-                    rv_adaptor = ci.get_object(object_type=self.object_type, **kwds)
+                    rv_adaptor = ci.get_object(model=instance.model, object_type=self.object_type, **kwds)
                 return rv_adaptor
 
         def get_or_create_object(instance, data=None, layer=None):

@@ -35,9 +35,6 @@ class BaseAdaptor(object):
 
     """
     #XXX: Save everything or delegate everything or handle per-object?
-    class Meta:
-        abstract = True
-
     layer = 'adaptor'
 
 class SplitAdaptor(BaseAdaptor):
@@ -53,49 +50,8 @@ class SplitAdaptor(BaseAdaptor):
     the data at one of those locations. These functions take a list
     of `fields`, which are then saved on the corresponsing object.
     """
-    class Meta:
-        abstract = True
+    pass
 
-    def __init__(self, *args, **kwargs):
-        # These adaptors are also models
-        super(SplitAdaptor).__init__(*args, **kwargs)
-        if kwargs.get('local', None) and kwargs.get('remote', None):
-            self.local = kwargs['local']
-            self.remote = kwargs['remote']
-
-    def split_and_save(self, using=None):
-        """
-        Split up the fields for a given object
-        and perform `save_local` and `save_remote` on them.
-        """
-        pass
-
-    def save_local(self, using=None, *fields):
-        """
-        Save the given fields locally.
-        """
-        local_object = self.local.__class__()
-        for field_name in self.fields:
-            if field_name in fields:
-                field_val = getattr(self, field_name)
-                setattr(local_object, field_name, field_val)
-        local_object.save(using=using)
-
-    def save_remote(self, using=None, *fields):
-        """
-        Save the fields remotely.
-        """
-        remote_url = getattr(self, partial_URL, None)
-        if remote_url:
-            # Create an Interface for that URL and save the fields.
-            i = Interface(base_url=remote_url)
-            # Now, we create a pseudo-object from the ModelAdaptors.
-            remote_adaptor = get_object_adaptor(self.object_type)
-            for field_name in self.fields:
-                if field_name in fields:
-                    field_val = getattr(self, field_name)
-                    setattr(remote_adaptor, field_name, field_val)
-            remote_adaptor.save(using=using)
 
 #TODO: `url` field for each adaptor.
 class DomainAdaptor(BaseAdaptor):
@@ -176,19 +132,6 @@ class DomainAdaptor(BaseAdaptor):
                 if entry['list_name'] == listname:
                     return ListAdaptor(self._connection, entry['self_link'])
 
-#class DomainAdaptor(BaseAdaptor):
-#    object_type = 'domains'
-#    keyed_on = 'mail_host'
-#    below_key = 'mail_host'
-#
-#    base_url = models.URLField()
-#    mail_host = models.CharField(max_length=100)
-#    description = models.TextField()
-#    contact_address = models.EmailField()
-#
-#    def __unicode__(self):
-#        return self.base_url
-#
 '''
 class UserAdaptor(BaseAdaptor):
     def __init__(self, connection, url):

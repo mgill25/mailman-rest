@@ -338,6 +338,9 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
     layer = 'rest'
     object_type='domain'
     keyed_on = 'mail_host'
+    below_key = 'mail_host'
+
+    adaptor = DomainAdaptor
 
     objects = DomainManager()
 
