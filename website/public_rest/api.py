@@ -169,17 +169,16 @@ class CoreInterface(object):
         if partial_url and model:
             return model.adaptor(self.connection, partial_url)
 
-    def get_object(self, partial_url=None, model=None, **kwargs):
+    def get_object(self, partial_url=None, model=None, object_type=None, **kwargs):
         """
         :kwargs - Data arguments for `get_` functions.
         """
         if partial_url and model:
             return self.get_object_from_url(partial_url=partial_url, model=model)
         elif model and not partial_url:
-            object_type = kwargs.get('object_type')
             if kwargs and object_type:
                 #TODO: Have `get_` functions corresponding to each adaptor.
-                imethod = getattr(self.connection, 'get_' + object_type)
+                imethod = getattr(self, 'get_' + object_type)
                 rv = imethod(**kwargs)
                 return rv
 
