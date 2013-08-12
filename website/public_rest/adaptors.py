@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+"""
+ERROR: Import Loop:
+interface -> api -> adaptor -> interface
+"""
 import re
 import json
 
@@ -11,9 +14,13 @@ from urllib import urlencode
 from urllib2 import HTTPError
 from urlparse import urljoin
 
-from interface import *
+from django.db import models
 
-class BaseAdaptor(AbstractRemotelyBackedObject):
+from public_rest.interface import AbstractObject
+from public_rest.interface import AbstractLocallyBackedObject
+from public_rest.interface import AbstractRemotelyBackedObject
+
+class BaseAdaptor(object):
     """
     An adaptor is a remotely backed object, which will
     contain information that relates back to the lower
@@ -28,8 +35,10 @@ class BaseAdaptor(AbstractRemotelyBackedObject):
 
     """
     #XXX: Save everything or delegate everything or handle per-object?
-    pass
+    class Meta:
+        abstract = True
 
+    layer = 'adaptor'
 
 class SplitAdaptor(BaseAdaptor):
     """
@@ -44,6 +53,9 @@ class SplitAdaptor(BaseAdaptor):
     the data at one of those locations. These functions take a list
     of `fields`, which are then saved on the corresponsing object.
     """
+    class Meta:
+        abstract = True
+
     def __init__(self, *args, **kwargs):
         # These adaptors are also models
         super(SplitAdaptor).__init__(*args, **kwargs)
@@ -87,11 +99,92 @@ class SplitAdaptor(BaseAdaptor):
 
 
 class DomainAdaptor(BaseAdaptor):
-    base_url = models.URLField()
-    mail_host = models.CharField(max_length=100)
-    description = models.TextField()
-    contact_address = models.EmailField()
+    """
+    An Adaptor, which does the job of wrapping and unwrapping
+    of data b/w the `rest` and `core` layers.
+    """
+    def __init__(self, connection, url):
+        self._connection = connection
+        self._url = url
+        self._info = None
+        super(DomainAdaptor).__init__(self, connection, url)
 
+
+    def __repr__(self):
+        return '<DomainAdaptor "{0}">'.format(self.mail_host)
+
+    def _get_info(self):
+        if self._info is None:
+            response, content = self._connection.call(self._url)
+            self._info = content.json
+
+    # note: `base_url` property will be renamed to `web_host`
+    # in Mailman3Alpha8
+    @property
+    def base_url(self):
+        self._get_info()
+        return self._info['base_url']
+
+    @property
+    def contact_address(self):
+        self._get_info()
+        return self._info['contact_address']
+
+    @property
+    def description(self):
+        self._get_info()
+        return self._info['description']
+
+    @property
+    def mail_host(self):
+        self._get_info()
+        return self._info['mail_host']
+
+    @property
+    def url_host(self):
+        self._get_info()
+        return self._info['url_host']
+
+    @property
+    def lists(self):
+        response, content = self._connection.call(
+            'domains/{0}/lists'.format(self.mail_host))
+        if 'entries' not in content:
+            return []
+        return [ListAdaptor(self._connection, entry['self_link'])
+                for entry in sorted(content['entries'],
+                                    key=itemgetter('fqdn_listname'))]
+
+    def create_list(self, list_name):
+        fqdn_listname = '{0}@{1}'.format(list_name, self.mail_host)
+        response, content = self._connection.call(
+            'lists', dict(fqdn_listname=fqdn_listname))
+        return ListAdaptor(self._connection, response['location'])
+
+    def get_or_create(self, listname):
+        """Get or create a list"""
+        response, content = self._connection.call(
+                'domains/{0}/lists'.format(self.mail_host))
+        if 'entries' not in content:
+            return self.create_list(listname)
+        else:
+            for entry in content['entries']:
+                if entry['list_name'] == listname:
+                    return ListAdaptor(self._connection, entry['self_link'])
+
+#class DomainAdaptor(BaseAdaptor):
+#    object_type = 'domains'
+#    keyed_on = 'mail_host'
+#    below_key = 'mail_host'
+#
+#    base_url = models.URLField()
+#    mail_host = models.CharField(max_length=100)
+#    description = models.TextField()
+#    contact_address = models.EmailField()
+#
+#    def __unicode__(self):
+#        return self.base_url
+#
 '''
 class UserAdaptor(BaseAdaptor):
     def __init__(self, connection, url):
@@ -252,79 +345,6 @@ class PreferencesAdaptor(BaseAdaptor):
                 data[key] = self._preferences[key]
         response, content = self._connection.call(self._url, data, 'PUT')
 
-
-class DomainAdaptor(AbstractRemotelyBackedObject):
-    """
-    An Adaptor, which does the job of wrapping and unwrapping
-    of data b/w the two layers.
-    """
-    def __init__(self, connection, url):
-        self._connection = connection
-        self._url = url
-        self._info = None
-
-
-    def __repr__(self):
-        return '<DomainAdaptor "{0}">'.format(self.mail_host)
-
-    def _get_info(self):
-        if self._info is None:
-            response, content = self._connection.call(self._url)
-            self._info = content.json
-
-    # note: `base_url` property will be renamed to `web_host`
-    # in Mailman3Alpha8
-    @property
-    def base_url(self):
-        self._get_info()
-        return self._info['base_url']
-
-    @property
-    def contact_address(self):
-        self._get_info()
-        return self._info['contact_address']
-
-    @property
-    def description(self):
-        self._get_info()
-        return self._info['description']
-
-    @property
-    def mail_host(self):
-        self._get_info()
-        return self._info['mail_host']
-
-    @property
-    def url_host(self):
-        self._get_info()
-        return self._info['url_host']
-
-    @property
-    def lists(self):
-        response, content = self._connection.call(
-            'domains/{0}/lists'.format(self.mail_host))
-        if 'entries' not in content:
-            return []
-        return [ListAdaptor(self._connection, entry['self_link'])
-                for entry in sorted(content['entries'],
-                                    key=itemgetter('fqdn_listname'))]
-
-    def create_list(self, list_name):
-        fqdn_listname = '{0}@{1}'.format(list_name, self.mail_host)
-        response, content = self._connection.call(
-            'lists', dict(fqdn_listname=fqdn_listname))
-        return ListAdaptor(self._connection, response['location'])
-
-    def get_or_create(self, listname):
-        """Get or create a list"""
-        response, content = self._connection.call(
-                'domains/{0}/lists'.format(self.mail_host))
-        if 'entries' not in content:
-            return self.create_list(listname)
-        else:
-            for entry in content['entries']:
-                if entry['list_name'] == listname:
-                    return ListAdaptor(self._connection, entry['self_link'])
 
 
 class ListAdaptor(BaseAdaptor):
@@ -610,3 +630,4 @@ class SettingsAdaptor(BaseAdaptor):
         response, content = self._connection.call(self._url, data, 'PATCH')
 
 '''
+

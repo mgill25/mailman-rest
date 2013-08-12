@@ -5,8 +5,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -336,7 +334,11 @@ class DomainManager(models.Manager):
         return rv
 
 
-class Domain(BaseModel, AbstractLocallyBackedObject):
+class Domain(BaseModel, AbstractRemotelyBackedObject):
+    layer = 'rest'
+    layer_below = models.OneToOneField(DomainAdaptor, null=True)
+    object_type='domain'
+    keyed_on = 'mail_host'
 
     objects = DomainManager()
 

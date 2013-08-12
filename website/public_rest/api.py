@@ -1,19 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""
-Get responses from Mailman Core and use adaptors to
-wrap them up.
-
-    >> from api import get_from_interface
-    >> given_url = 'http://localhost:8001/3.0/users/'
-    >> response = get_from_interface(partial_url=given_url, method='GET')
-    >> response.status_code
-    200
-    >> response.json
-    { "username" : "Foobar", "email_addresses" : "foo@example.com" }
-"""
-
 import logging
 import requests
 from urlparse import urljoin
@@ -32,7 +17,7 @@ class MailmanConnectionError(Exception):
     """Custom exception to catch Connection errors"""
     pass
 
-class Connection:
+class Connection(object):
     """A connection to the REST client."""
 
     def __init__(self, base_url=None, name=None, password=None):
@@ -166,9 +151,12 @@ class CoreInterface(object):
         response, content = self.connection.call('domains')
         if 'entries' not in content:
             return []
-        return [DomainAdaptor(self.connection, entry['self_link'])
-                for entry in sorted(content['entries'],
+        # Save the adaptor objects
+        domain_list = [DomainAdaptor(self.connection, entry['self_link'])
+                        for entry in sorted(content['entries'],
                                     key=itemgetter('url_host'))]
+        for d in domain_list:
+            d.save()
 
     def get_domain(self, mail_host=None, web_host=None):
         """Get domain by its mail_host or its web_host."""
@@ -186,4 +174,19 @@ class CoreInterface(object):
             else:
                 return None
 
-
+    def get_from_interface(self, **kwargs):
+        """
+        For the given parameters in the kwargs,
+        get the respective object.
+        Example:
+            kwargs['mail_host'] = 'mail.example.com'
+            Now, we figure out that 'mail_host' means
+            we are "most likely" looking for a domain
+            object, make a GET request for that, passing
+            along the kwargs data, get the response
+            back, handle error status codes, and then
+            return the content.
+        Don't even know if the content should be in JSON
+        or wrapped around in Adaptor objects. :-/
+        """
+        pass

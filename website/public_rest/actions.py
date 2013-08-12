@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from interface import *
-from models import *
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from public_rest.interface import *
+from public_rest.models import *
+from public_rest.adaptors import *
 
 #   ####################
 #     The save actions
@@ -15,12 +16,16 @@ from django.dispatch import receiver
 def on_MailingList_save(sender, **kwargs):
     kwargs['instance'].process_on_save_signal(sender, **kwargs)
 
-@receiver(post_save, sender=User)
-def on_User_save(sender, **kwargs):
-    kwargs['instance'].process_on_save_signal(sender, **kwargs)
+#@receiver(post_save, sender=User)
+#def on_User_save(sender, **kwargs):
+#    kwargs['instance'].process_on_save_signal(sender, **kwargs)
 
 @receiver(post_save, sender=Domain)
 def on_Domain_save(sender, **kwargs):
     kwargs['instance'].process_on_save_signal(sender, **kwargs)
 
 
+@receiver(post_save, sender=DomainAdaptor)
+def on_DomainAdaptor_save(sender, **kwargs):
+    print('instance: ', kwargs['instance'])
+    kwargs['instance'].process_on_save_signal(sender, **kwargs)
