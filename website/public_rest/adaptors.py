@@ -97,7 +97,7 @@ class SplitAdaptor(BaseAdaptor):
                     setattr(remote_adaptor, field_name, field_val)
             remote_adaptor.save(using=using)
 
-
+#TODO: `url` field for each adaptor.
 class DomainAdaptor(BaseAdaptor):
     """
     An Adaptor, which does the job of wrapping and unwrapping

@@ -162,6 +162,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
 
     def process_on_save_signal(self, sender, **kwargs):
         print("Inside AbstractRemotelyBackedObject!")
+        ci = CoreInterface()
         def get_object(instance, url=None, layer=None):
             """
             Returns the ObjectAdaptor.
@@ -170,39 +171,20 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 if instance.partial_URL:
                     # We already have a partial url in the database.
                     url = urljoin(settings.MAILMAN_API_URL, instance.partial_URL)
-                    #TODO: Decouple API calls from this function.
-                    res_status, res_content = call_api(url, 'get')
-                    if res_status == 200:
-                        return json.loads(res_content)
-                    return None
+                    rv_adaptor = ci.get_object_from_url(url=url, object_type=self.object_type)
                 else:
-                    # XXX
-                    # We don't have a partial url. Try to get the data
-                    # directly by constructing a url from some unique
-                    # properties of the instance, like `below_key`.
-
-                    # Problem: Interaction with Core-API is the job of
-                    # CoreInterface and we should not be doing it here.
-                    # How to easily decouple these two?
-
-                    # At each layer, models declare that they are `keyed_on`
-                    # a certain field, which can be used to pull them up, when
-                    # we do a `get_backing_model().keyed_on` and use it.
-                    # However, in case of Core, we don't necessarily have that
-                    # field.
-
                     field_key = instance.below_key
                     kwds = { field_key : getattr(instance, field_key) }
+                    rv_adaptor = ci.get_object(object_type=self.object_type, **kwds)
+                return rv_adaptor
 
         def get_or_create_object(instance, data=None, layer=None):
             res = get_object(instance, layer=layer)
             if not res:
                 # Push the object on the backer via the REST API.
                 model_url = urljoin('{0}/3.0/'.format(settings.MAILMAN_API_URL), self.object_type)
-                res_status, res_content = call_api(model_url, 'post', data)
-                if res_status == 201:
-                    clean_result = json.loads(res_content)
-                    return clean_result
+                rv_adaptor = ci.create_object(url=model_url, object_type=self.object_type)
+                return rv_adaptor
             else:
                 return res
 
@@ -225,12 +207,14 @@ class AbstractRemotelyBackedObject(AbstractObject):
             res = get_or_create_object(instance, data=backing_data, layer=backing_layer)
             if res:
                 # Create a peer thing and associate the url with it.
-                instance.partial_URL = urlsplit(res['url']).path
+                instance.partial_URL = urlsplit(res.url).path
                 instance.save()
                 # Update the information at the back with new data
-                res_status, res = call_api(urljoin(settings.API_BASE_URL, instance.partial_URL), 'patch', backing_data)
+                url = urljoin(settings.API_BASE_URL, instance.partial_URL)
+                ci.update_object(url=url, data=backing_data)
         else:
             # PATCH the fields in back.
-            res_status, res = call_api(urljoin(settings.API_BASE_URL, instance.partial_URL), 'patch', backing_data)
+            url = urljoin(settings.API_BASE_URL, instance.partial_URL)
+            ci.update_object(url=url)
         super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
 

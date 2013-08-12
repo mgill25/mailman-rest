@@ -174,19 +174,45 @@ class CoreInterface(object):
             else:
                 return None
 
-    def get_from_interface(self, **kwargs):
+    def get_object_from_url(self, url=None, **kwargs):
+        """
+        Given a URL, GET an object, wrap it
+        using its adaptor, and return it.
+        """
+        pass
+
+    def get_object(self, url=None, **kwargs):
         """
         For the given parameters in the kwargs,
         get the respective object.
-        Example:
-            kwargs['mail_host'] = 'mail.example.com'
-            Now, we figure out that 'mail_host' means
-            we are "most likely" looking for a domain
-            object, make a GET request for that, passing
-            along the kwargs data, get the response
-            back, handle error status codes, and then
-            return the content.
-        Don't even know if the content should be in JSON
-        or wrapped around in Adaptor objects. :-/
+
+        If `object_type` is 'domains',
+        call self.domains and return results.
+
+        What about if object_type is `domains`, but
+        we need result from `get_domain` ?
+        """
+        # Make the call via URL
+        if url:
+            return self.get_object_from_url(**kwargs)
+        else:
+            below_key = kwargs.get('below_key')
+            object_type = kwargs.get('object_type')
+            print('key: {0}, type: {1}'.format(below_key, object_type))
+            if below_key and object_type:
+                # Pull the object_type using below_key
+                imethod = getattr(self, object_type)
+                rv = self.imethod(object_type)
+
+    def create_object(self, **kwargs):
+        """
+        Create an object on the given URL
+        and return an adaptor.
+        """
+        pass
+
+    def update_object(self, url=None, **kwargs):
+        """
+        `PATCH` the API to update objects.
         """
         pass
