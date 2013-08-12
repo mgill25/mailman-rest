@@ -34,6 +34,10 @@ class BaseAdaptor(object):
     #XXX: Save everything or delegate everything or handle per-object?
     layer = 'adaptor'
 
+    def __iter__(self):
+        for item in self.iter_fields:
+            yield item
+
 class SplitAdaptor(BaseAdaptor):
     """
     An Adaptor layer that splits the data into different locations.
@@ -60,6 +64,7 @@ class DomainAdaptor(BaseAdaptor):
         self._connection = connection
         self._url = url
         self._info = None
+        self.iter_fields = ['base_url', 'mail_host', 'contact_address', 'description']
 
 
     def __repr__(self):

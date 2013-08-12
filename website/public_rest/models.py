@@ -321,6 +321,7 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
 
 class MailingList(AbstractMailingList, AbstractLocallyBackedObject):
     fields = ['fqdn_listname', ]
+
     class Meta:
         swappable = 'MAILINGLIST_MODEL'
 
@@ -374,6 +375,8 @@ class Email(models.Model):
     address = models.EmailField(unique=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     verified = models.BooleanField(default=False)
+
+    field = ['address', ]
 
     def save(self, *args, **kwargs):
         if self.pk is None:

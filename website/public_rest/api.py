@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import re
 import logging
 import requests
+from operator import itemgetter
 from urlparse import urljoin, urlsplit
 
 from django.conf import settings
@@ -181,6 +181,25 @@ class CoreInterface(object):
             imethod = getattr(self, 'get_' + object_type)
             rv = imethod(**kwargs)
             return rv
+
+    def get_all_from_url(self, url, model, object_type):
+        """
+        Get all objects and return an adaptor list.
+        """
+        response, content = self.connection.call(urlsplit(url).path)
+        if 'entries' not in content:
+            return []
+
+        if object_type == 'domain':
+            sort_key = itemgetter('url_host')
+        elif object_type == 'user':
+            sort_key = itemgetter('self_link')
+        else:
+            sort_key = None
+
+        return [model.adaptor(self.connection, entry['self_link'])
+                        for entry in sorted(content['entries'],
+                                    key=sort_key)]
 
     def create_object(self, model=None, object_type=None, data=None, **kwargs):
         """
