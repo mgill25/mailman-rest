@@ -10,6 +10,7 @@ import logging
 import json
 from urlparse import urljoin, urlsplit
 from urllib import urlencode
+from urllib2 import HTTPError
 
 from django.conf import settings
 from django.db import models
@@ -19,8 +20,8 @@ from model_utils.managers import PassThroughManager
 from public_rest.utils import call_api
 
 # XXX: This is causing import error.
-#from public_rest.api import CoreInterface, Connection
-#core_interface = CoreInterface()
+from public_rest.api import CoreInterface, Connection
+ci = CoreInterface()
 
 LayerBelow = { 'rest':'adaptor',
 'adaptor':'core',
@@ -163,27 +164,30 @@ class AbstractRemotelyBackedObject(AbstractObject):
     def process_on_save_signal(self, sender, **kwargs):
         print("Inside AbstractRemotelyBackedObject!")
 
-        ci = CoreInterface()
-
-        def get_object(instance, url=None, layer=None):
+        def get_object(instance, url=None):
             """
             Returns the ObjectAdaptor.
             """
             if url is None:
+                object_model = instance.__class__
                 if instance.partial_URL:
                     # We already have a partial url in the database.
-                    rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, model=instance.model)
+                    rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, model=object_model)
                 else:
                     field_key = instance.below_key
                     kwds = { field_key : getattr(instance, field_key) }
-                    rv_adaptor = ci.get_object(model=instance.model, object_type=self.object_type, **kwds)
+                    try:
+                        rv_adaptor = ci.get_object(model=object_model, object_type=self.object_type, **kwds)
+                    except HTTPError:
+                        return None
                 return rv_adaptor
 
-        def get_or_create_object(instance, data=None, layer=None):
-            res = get_object(instance, layer=layer)
+        def get_or_create_object(instance, data=None):
+            object_model = instance.__class__
+            res = get_object(instance)
             if not res:
                 # Push the object on the backer via the REST API.
-                rv_adaptor = ci.create_object(object_type=self.object_type, data=data)
+                rv_adaptor = ci.create_object(model=object_model, object_type=self.object_type, data=data)
                 return rv_adaptor
             else:
                 return res
@@ -191,10 +195,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
         # Handle post_save
         instance = kwargs['instance']
         print('Post_save {object_type} in {layer} layer'.format(layer=self.layer, object_type=self.object_type))
-        backing_layer = 'core'
         backing_data = {}
-        instance_fields = [fn for fn in instance._meta.get_all_field_names() if fn != u'id']
-        for field_name in instance_fields:
+        for field_name in instance.fields:
             field_val = getattr(instance, field_name)
             if isinstance(field_val, AbstractRemotelyBackedObject):
                 if field_val.partial_URL:
@@ -204,15 +206,20 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 field_val = related_url
             backing_data[field_name] = field_val
         if kwargs.get('created'):
-            res = get_or_create_object(instance, data=backing_data, layer=backing_layer)
+            print("data: ", backing_data)
+            res = get_or_create_object(instance, data=backing_data)
             if res:
                 # Create a peer thing and associate the url with it.
                 instance.partial_URL = urlsplit(res.url).path
                 instance.save()
-                # Update the information at the back with new data
-                ci.update_object(partial_url=instance.partial_URL, data=backing_data)
+                # Update the information at the back with new data.
+                # >> Depends on the object_type
+            else:
+                if instance.object_type != 'domain':
+                    ci.update_object(partial_url=instance.partial_URL, data=backing_data)
         else:
             # PATCH the fields in back.
-            ci.update_object(partial_url=instance.partial_URL, data=backing_data)
+            if instance.object_type != 'domain':
+                ci.update_object(partial_url=instance.partial_URL, data=backing_data)
         super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import re
 import logging
 import requests
 from urlparse import urljoin, urlsplit
@@ -80,6 +81,7 @@ class Connection(object):
             headers['Authorization'] = 'Basic ' + self.basic_auth
         url = urljoin(self.base_url, path)
         try:
+            # print('url: {0}, base_url: {1}, path: {2}'.format(url, self.base_url, path))
             response, content = Http().request(url, method, data, headers)
             # If we did not get a 2xx status code, make this look like a
             # urllib2 exception, for backward compatibility.
@@ -176,7 +178,6 @@ class CoreInterface(object):
         if partial_url and model:
             return self.get_object_from_url(partial_url=partial_url, model=model)
         elif kwargs and object_type and not partial_url:
-            #TODO: Have `get_` functions corresponding to each adaptor.
             imethod = getattr(self, 'get_' + object_type)
             rv = imethod(**kwargs)
             return rv
@@ -189,7 +190,8 @@ class CoreInterface(object):
         # the data. It *might* be the case that an adaptor X
         # is represented by different objects Y and Z at the
         # Mailman Core API.
-        response, content = self.connection.call(object_type, data=data, method='POST')
+        api_resource = object_type + 's'
+        response, content = self.connection.call(api_resource, data=data, method='POST')
         partial_url = urlsplit(response['location']).path
         return model.adaptor(self.connection, partial_url)
 

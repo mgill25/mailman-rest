@@ -320,6 +320,7 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         return self.membership_set.get(address=address)
 
 class MailingList(AbstractMailingList, AbstractLocallyBackedObject):
+    fields = ['fqdn_listname', ]
     class Meta:
         swappable = 'MAILINGLIST_MODEL'
 
@@ -336,7 +337,7 @@ class DomainManager(models.Manager):
 
 class Domain(BaseModel, AbstractRemotelyBackedObject):
     layer = 'rest'
-    object_type='domains'
+    object_type='domain'
     keyed_on = 'mail_host'
     below_key = 'mail_host'
 
@@ -345,9 +346,11 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
     objects = DomainManager()
 
     base_url = models.URLField()
-    mail_host = models.CharField(max_length=100)
+    mail_host = models.CharField(max_length=100, unique=True)
     description = models.TextField()
     contact_address = models.EmailField()
+
+    fields = ['base_url', 'mail_host', 'description', 'contact_address']
 
     @property
     def lists(self):

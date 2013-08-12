@@ -16,9 +16,6 @@ from urlparse import urljoin
 
 from django.db import models
 
-from public_rest.interface import AbstractObject
-from public_rest.interface import AbstractLocallyBackedObject
-from public_rest.interface import AbstractRemotelyBackedObject
 
 class BaseAdaptor(object):
     """
