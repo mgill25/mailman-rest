@@ -170,8 +170,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
             if url is None:
                 if instance.partial_URL:
                     # We already have a partial url in the database.
-                    url = urljoin(settings.MAILMAN_API_URL, instance.partial_URL)
-                    rv_adaptor = ci.get_object_from_url(url=url, object_type=self.object_type)
+                    rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, \
+                            object_type=self.object_type)
                 else:
                     field_key = instance.below_key
                     kwds = { field_key : getattr(instance, field_key) }
@@ -182,8 +182,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             res = get_object(instance, layer=layer)
             if not res:
                 # Push the object on the backer via the REST API.
-                model_url = urljoin('{0}/3.0/'.format(settings.MAILMAN_API_URL), self.object_type)
-                rv_adaptor = ci.create_object(url=model_url, object_type=self.object_type)
+                rv_adaptor = ci.create_object(object_type=self.object_type)
                 return rv_adaptor
             else:
                 return res
@@ -210,11 +209,9 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 instance.partial_URL = urlsplit(res.url).path
                 instance.save()
                 # Update the information at the back with new data
-                url = urljoin(settings.API_BASE_URL, instance.partial_URL)
-                ci.update_object(url=url, data=backing_data)
+                ci.update_object(partial_url=instance.partial_URL, data=backing_data)
         else:
             # PATCH the fields in back.
-            url = urljoin(settings.API_BASE_URL, instance.partial_URL)
-            ci.update_object(url=url)
+            ci.update_object(partial_url=instance.partial_URL, data=backing_data)
         super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
 

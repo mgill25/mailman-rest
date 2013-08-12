@@ -336,7 +336,6 @@ class DomainManager(models.Manager):
 
 class Domain(BaseModel, AbstractRemotelyBackedObject):
     layer = 'rest'
-    layer_below = models.OneToOneField(DomainAdaptor, null=True)
     object_type='domain'
     keyed_on = 'mail_host'
 

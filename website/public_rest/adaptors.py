@@ -107,7 +107,6 @@ class DomainAdaptor(BaseAdaptor):
         self._connection = connection
         self._url = url
         self._info = None
-        super(DomainAdaptor).__init__(self, connection, url)
 
 
     def __repr__(self):
@@ -116,7 +115,12 @@ class DomainAdaptor(BaseAdaptor):
     def _get_info(self):
         if self._info is None:
             response, content = self._connection.call(self._url)
-            self._info = content.json
+            self._info = content
+
+    @property
+    def url(self):
+        self._get_info()
+        return self._info['self_link']
 
     # note: `base_url` property will be renamed to `web_host`
     # in Mailman3Alpha8

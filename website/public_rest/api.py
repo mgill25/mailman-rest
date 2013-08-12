@@ -105,15 +105,6 @@ class CoreInterface(object):
     def __repr__(self):
         return '<CoreInterface {0.base_url} >'.format(self.connection)
 
-    def get_from_url(self, url):
-        """
-        Generic function. Get response from the API and wrap it using proxy objects.
-        """
-        if 'users' in url:
-            return UserAdaptor(self.connection, url)
-        elif 'lists' in url:
-            return ListAdaptor(self.connection, url)
-
     @property
     def system(self):
         return self.connection.call('system')[1]
@@ -151,12 +142,9 @@ class CoreInterface(object):
         response, content = self.connection.call('domains')
         if 'entries' not in content:
             return []
-        # Save the adaptor objects
-        domain_list = [DomainAdaptor(self.connection, entry['self_link'])
+        return [DomainAdaptor(self.connection, entry['self_link'])
                         for entry in sorted(content['entries'],
                                     key=itemgetter('url_host'))]
-        for d in domain_list:
-            d.save()
 
     def get_domain(self, mail_host=None, web_host=None):
         """Get domain by its mail_host or its web_host."""
@@ -174,14 +162,17 @@ class CoreInterface(object):
             else:
                 return None
 
-    def get_object_from_url(self, url=None, **kwargs):
+    def get_object_from_url(self, partial_url=None, **kwargs):
         """
         Given a URL, GET an object, wrap it
         using its adaptor, and return it.
         """
-        pass
+        if partial_url:
+            response, content = self.connection.call(partial_url)
+            #XXX: How to create the corresponding adaptor?
 
-    def get_object(self, url=None, **kwargs):
+
+    def get_object(self, partial_url=None, **kwargs):
         """
         For the given parameters in the kwargs,
         get the respective object.
@@ -193,8 +184,8 @@ class CoreInterface(object):
         we need result from `get_domain` ?
         """
         # Make the call via URL
-        if url:
-            return self.get_object_from_url(**kwargs)
+        if partial_url:
+            return self.get_object_from_url(partial_url=partial_url, **kwargs)
         else:
             below_key = kwargs.get('below_key')
             object_type = kwargs.get('object_type')
@@ -204,14 +195,13 @@ class CoreInterface(object):
                 imethod = getattr(self, object_type)
                 rv = self.imethod(object_type)
 
-    def create_object(self, **kwargs):
+    def create_object(self, object_type=None, **kwargs):
         """
-        Create an object on the given URL
-        and return an adaptor.
+        Create a Remote object and return the adaptor.
         """
         pass
 
-    def update_object(self, url=None, **kwargs):
+    def update_object(self, partial_url=None, **kwargs):
         """
         `PATCH` the API to update objects.
         """
