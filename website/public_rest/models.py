@@ -486,11 +486,10 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
 
     def save(self, *args, **kwargs):
         if self.pk is None:
-            if self.peer:
-            super(AbstractUser, self).save(*args, **kwargs)
-            self.prefs = UserPrefs(user=self)
-            self.prefs.peer_etag = self.peer.preferences['http_etag']
-            self.prefs.save()
+                super(AbstractUser, self).save(*args, **kwargs)
+                self.prefs = UserPrefs(user=self)
+                self.prefs.peer_etag = self.peer.preferences['http_etag']
+                self.prefs.save()
         else:
             super(AbstractUser, self).save(*args, **kwargs)
 

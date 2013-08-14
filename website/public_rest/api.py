@@ -175,7 +175,7 @@ class CoreInterface(object):
             return AddressAdaptor(self.connection, content['self_link'])
 
 
-    def get_settings(self, fqdn_listname):
+    def get_listsettings(self, fqdn_listname):
         if list_name is not None:
             response, content = self.connection.call(
                     'lists/{0}/config'.format(fqdn_listname))
