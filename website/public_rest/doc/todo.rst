@@ -7,3 +7,6 @@ TODO
 
 2. Uniform interface for *secondary* Core entities. List Settings are models on
    their own, but are exposed via `lists/foo@bar.com/config` API etc.
+
+3. Iterating over fields in an adaptor while creating images (in the process of
+   pulling things up) -- inside `filter`.

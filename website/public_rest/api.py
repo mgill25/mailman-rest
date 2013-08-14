@@ -201,7 +201,6 @@ class CoreInterface(object):
         :kwargs - Data arguments for `get_` functions.
         """
         if partial_url and object_type:
-            model = self.get_model_from_object(object_type)
             return self.get_object_from_url(partial_url=partial_url, object_type=object_type)
         elif kwargs and object_type and not partial_url:
             imethod = getattr(self, 'get_' + object_type)
@@ -212,7 +211,6 @@ class CoreInterface(object):
         """
         Get all objects and return an adaptor list.
         """
-        model = self.get_model_from_object(object_type)
         response, content = self.connection.call(urlsplit(url).path)
         if 'entries' not in content:
             return []
@@ -223,6 +221,7 @@ class CoreInterface(object):
             sort_key = itemgetter('self_link')
         else:
             sort_key = None
+        model = self.get_model_from_object(object_type)
         return [model.adaptor(self.connection, entry['self_link'])
                         for entry in sorted(content['entries'],
                                     key=sort_key)]
