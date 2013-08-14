@@ -213,7 +213,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             if not res:
                 # Push the object on the backer via the REST API.
                 extra_args = {}
-                if self.object_type == 'settings':
+                if self.object_type == 'listsettings':
                     extra_args = { 'fqdn_listname': instance.mailinglist.fqdn_listname }
                 rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **extra_args)
                 return rv_adaptor

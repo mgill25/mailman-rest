@@ -150,7 +150,7 @@ class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperat
 
 
 class ListSettings(ListParametersMixin):
-    object_type = 'settings'
+    object_type = 'listsettings'
     lookup_field = 'fqdn_listname'
     adaptor = SettingsAdaptor
     fields = []

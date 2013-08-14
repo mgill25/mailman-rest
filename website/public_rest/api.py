@@ -230,7 +230,7 @@ class CoreInterface(object):
         """
         if object_type == 'email':
             endpoint = 'addresses'
-        elif object_type == 'settings':
+        elif object_type == 'listsettings':
             endpoint = 'lists/{0}/config'.format(kwargs['fqdn_listname'])
         else:
             endpoint = object_type + 's'
