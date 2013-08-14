@@ -310,7 +310,7 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
 class MailingList(AbstractMailingList, AbstractRemotelyBackedObject):
     object_type = 'mailinglist'
     adaptor = ListAdaptor
-    fields = ['fqdn_listname',]
+    fields = [('fqdn_listname', 'fqdn_listname'),]
 
     class Meta:
         swappable = 'MAILINGLIST_MODEL'
@@ -339,9 +339,8 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
     description = models.TextField()
     contact_address = models.EmailField()
 
-    fields = ['base_url', 'mail_host', 'description', 'contact_address']
-    #fields = [('base_url', 'base_url'), ('mail_host', 'mail_host'),
-    #        ('description', 'description'), ('contact_address', 'contact_address')]
+    fields = [('base_url', 'base_url'), ('mail_host', 'mail_host'),
+            ('description', 'description'), ('contact_address', 'contact_address')]
 
     @property
     def lists(self):
@@ -366,7 +365,7 @@ class Email(BaseModel, AbstractRemotelyBackedObject):
     object_type='email'
     lookup_field = 'address'
     adaptor = AddressAdaptor
-    fields = ['address', ]
+    fields = [('address', 'email'), ]
 
     address = models.EmailField(unique=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
@@ -497,7 +496,8 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
 
 
 class User(AbstractUser, AbstractRemotelyBackedObject):
-    fields = ['display_name', 'email', 'password']
+    fields = [('display_name', 'display_name'), ('email', 'email'),
+            ('password', 'password')]
     object_type = 'user'
     lookup_field = 'address'
     adaptor = UserAdaptor
