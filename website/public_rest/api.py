@@ -5,6 +5,7 @@ from operator import itemgetter
 from urlparse import urljoin, urlsplit
 
 from django.conf import settings
+from django.db.models.loading import get_model
 
 from public_rest.adaptors import *
 
@@ -167,25 +168,45 @@ class CoreInterface(object):
             else:
                 return None
 
-    def get_object_from_url(self, partial_url, model):
-        if partial_url and model:
+    def get_email(self, address=None):
+        if address is not None:
+            response, content = self.connection.call(
+                    'addresses/{0}'.format(address))
+            return AddressAdaptor(self.connection, content['self_link'])
+
+
+    def get_settings(self, fqdn_listname):
+        if list_name is not None:
+            response, content = self.connection.call(
+                    'lists/{0}/config'.format(fqdn_listname))
+            return SettingsAdaptor(self.connection)
+
+    # Some generic functions
+    def get_model_from_object(self, object_type):
+        return get_model(__file__.split('/')[-2], object_type)
+
+    def get_object_from_url(self, partial_url, object_type):
+        if partial_url and object_type:
+            model = self.get_model_from_object(object_type)
             return model.adaptor(self.connection, partial_url)
 
-    def get_object(self, partial_url=None, model=None, object_type=None, **kwargs):
+    def get_object(self, partial_url=None, object_type=None, **kwargs):
         """
         :kwargs - Data arguments for `get_` functions.
         """
-        if partial_url and model:
+        if partial_url and object_type:
+            model = self.get_model_from_object(object_type)
             return self.get_object_from_url(partial_url=partial_url, model=model)
         elif kwargs and object_type and not partial_url:
             imethod = getattr(self, 'get_' + object_type)
             rv = imethod(**kwargs)
             return rv
 
-    def get_all_from_url(self, url, model, object_type):
+    def get_all_from_url(self, url, object_type):
         """
         Get all objects and return an adaptor list.
         """
+        model = self.get_model_from_object(object_type)
         response, content = self.connection.call(urlsplit(url).path)
         if 'entries' not in content:
             return []
@@ -196,12 +217,26 @@ class CoreInterface(object):
             sort_key = itemgetter('self_link')
         else:
             sort_key = None
-
         return [model.adaptor(self.connection, entry['self_link'])
                         for entry in sorted(content['entries'],
                                     key=sort_key)]
 
-    def create_object(self, model=None, object_type=None, data=None, **kwargs):
+    def get_api_endpoint(self, object_type, **kwargs):
+        """
+        For a given object type, get the API endpoint
+        that we must call.
+        :Domain has `/domains` endpoint and `domain` object type.
+        :Email has `/addresses` endpoint and `email` object type.
+        """
+        if object_type == 'email':
+            endpoint = 'addresses'
+        elif object_type == 'settings':
+            endpoint = 'lists/{0}/config'.format(kwargs['fqdn_listname'])
+        else:
+            endpoint = object_type + 's'
+        return endpoint
+
+    def create_object(self, object_type=None, data=None, **kwargs):
         """
         Create a Remote object and return the adaptor.
         """
@@ -209,14 +244,16 @@ class CoreInterface(object):
         # the data. It *might* be the case that an adaptor X
         # is represented by different objects Y and Z at the
         # Mailman Core API.
-        api_resource = object_type + 's'
-        response, content = self.connection.call(api_resource, data=data, method='POST')
+        endpoint = self.get_api_endpoint(object_type, **kwargs)
+        response, content = self.connection.call(endpoint, data=data, method='POST')
         partial_url = urlsplit(response['location']).path
+        model = self.get_model_from_object(object_type)
         return model.adaptor(self.connection, partial_url)
 
-    def update_object(self, partial_url=None, model=None, data=None):
+    def update_object(self, partial_url=None, data=None):
         """
         `PATCH` the API to update objects (If method allowed)
         """
         response, content = self.connection.call(partial_url, data=data, method='PATCH')
+        model = self.get_model_from_object(object_type)
         return model.adaptor(self.connection, partial_url)

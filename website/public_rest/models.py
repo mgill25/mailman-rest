@@ -21,6 +21,7 @@ interface = CoreInterface('%s/3.0/' % MAILMAN_API_URL)
 conn = Connection('%s/3.0/' % MAILMAN_API_URL)
 
 class BaseModel(models.Model):
+    layer = 'rest'
 
     class Meta:
         abstract = True
@@ -149,6 +150,10 @@ class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperat
 
 
 class ListSettings(ListParametersMixin):
+    object_type = 'settings'
+    lookup_field = 'fqdn_listname'
+    adaptor = SettingsAdaptor
+    fields = []
 
     @property
     def acceptable_aliases(self):
@@ -171,19 +176,6 @@ class ListSettings(ListParametersMixin):
     def __setitem__(self, key, val):
         setattr(self, key, val)
         self.save()
-
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            super(ListSettings, self).save(*args, **kwargs)
-        else:
-            # Update peer settings as well!
-            peer_list = self.mailinglist.get_peer()
-            peer_settings = peer_list.settings
-            for setting_name, setting_val in self.mailinglist.settings:
-                if setting_name != u'id':
-                    peer_settings[setting_name] = setting_val
-            peer_settings.save()
-            super(ListSettings, self).save(*args, **kwargs)
 
 
 # Mailing List
@@ -243,10 +235,6 @@ class LocalListMixin(models.Model):
 
     peer_url = models.URLField()
     peer_etag = models.CharField(max_length=50)
-
-
-    def get_peer(self):
-        return ListPeer(conn, self.peer_url)
 
     def save(self, *args, **kwargs):
         if self.pk is None:
@@ -319,8 +307,8 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     def get_member(self, address):
         return self.membership_set.get(address=address)
 
-class MailingList(AbstractMailingList, AbstractLocallyBackedObject):
-    fields = ['fqdn_listname', ]
+class MailingList(AbstractMailingList, AbstractRemotelyBackedObject):
+    fields = ['fqdn_listname',]
 
     class Meta:
         swappable = 'MAILINGLIST_MODEL'
@@ -337,11 +325,9 @@ class DomainManager(models.Manager):
 
 
 class Domain(BaseModel, AbstractRemotelyBackedObject):
-    layer = 'rest'
     object_type='domain'
     keyed_on = 'mail_host'
-    below_key = 'mail_host'
-
+    lookup_field = 'mail_host'
     adaptor = DomainAdaptor
 
     objects = DomainManager()
@@ -352,6 +338,8 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
     contact_address = models.EmailField()
 
     fields = ['base_url', 'mail_host', 'description', 'contact_address']
+    #fields = [('base_url', 'base_url'), ('mail_host', 'mail_host'),
+    #        ('description', 'description'), ('contact_address', 'contact_address')]
 
     @property
     def lists(self):
@@ -371,17 +359,21 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
         return self.mail_host
 
 
-class Email(models.Model):
-    address = models.EmailField(unique=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    verified = models.BooleanField(default=False)
+class Email(BaseModel, AbstractRemotelyBackedObject):
 
-    field = ['address', ]
+    object_type='email'
+    lookup_field = 'address'
+    adaptor = AddressAdaptor
+    fields = ['address', ]
+
+    address = models.EmailField(unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    verified = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.pk is None:
             super(Email, self).save(*args, **kwargs)
-            if self.user.preferred_email is None:
+            if self.user and self.user.preferred_email is None:
                 self.user.preferred_email = self
                 self.user.save()
         else:
@@ -492,31 +484,22 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     def __unicode__(self):
         return self.display_name
 
-    def get_peer(self):
-        return UserPeer(conn, self.peer_url)
-
     def save(self, *args, **kwargs):
         if self.pk is None:
             if self.peer:
-                # Store the info from the peer (Core)
-                self.peer_user_id = str(self.peer.user_id)
-                self.peer_url = self.peer.self_link
             super(AbstractUser, self).save(*args, **kwargs)
             self.prefs = UserPrefs(user=self)
             self.prefs.peer_etag = self.peer.preferences['http_etag']
             self.prefs.save()
         else:
-            if self.peer_url:
-                # Update info at the Core as well
-                u = self.get_peer()
-                if u:
-                    u.display_name = self.display_name
-                    u.save()
             super(AbstractUser, self).save(*args, **kwargs)
 
 
-class User(AbstractUser):
-    pass
+class User(AbstractUser, AbstractRemotelyBackedObject):
+    fields = ['display_name', 'email', 'password']
+    object_type = 'user'
+    lookup_field = 'address'
+    adaptor = UserAdaptor
 
 
 class BasePrefs(BaseModel):

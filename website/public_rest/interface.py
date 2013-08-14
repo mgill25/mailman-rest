@@ -162,44 +162,16 @@ class AbstractLocallyBackedObject(AbstractObject):
     objects = LocalManager()
 
     def save(self, *args, **kwargs):
-        # Ensure that local object is always related to layer below
-        backing_record = self.layer_below
-        if backing_record is None:
-            lower_model = self.get_backing_model()
-            filter_args = {lower_model.keyed_on: getattr(self, lower_model.keyed_on)}
-            print('Backing {object_type} to {layer} layer with {filter}'.format(layer=lower_model.layer, object_type=self.object_type, filter=filter_args))
-            backing_record, created = self.get_backing_model().objects.get_or_create(**filter_args)
-            self.layer_below = backing_record
-        print('Saving {object_type}({pk}) in {layer} layer'.format(layer=self.layer, object_type=self.object_type, pk=self.pk))
+        # Stuff
         super(AbstractLocallyBackedObject, self).save(*args, **kwargs)
 
     def process_on_save_signal(self, sender, **kwargs):
-        print("Inside AbstractLocallyBackedObject")
-        instance = kwargs['instance']
-        print('Post_save {object_type} in {layer} layer'.format(layer=self.layer, object_type=self.object_type))
-        backing_record = self.layer_below
-        print('===Backup is to {layer}{object_type}({0})'.format(backing_record, layer=backing_record.layer, object_type=backing_record.object_type))
-        if backing_record:
-            for field_name in self.fields:
-                field_val = getattr(self, field_name)
-                if isinstance(field_val, AbstractObject):
-                   print("+  {0}: {1}".format(field_name, field_val))
-                   ## Convert field_val to a model
-                   below_model = field_val.__class__.get_backing_model()
-                   print("        Converting to {0}".format(below_model))
-                   field_key = below_model.keyed_on
-                   kwds = { field_key : getattr(field_val, field_key) }
-                   print("        Creating {0} from {1}".format(field_name, kwds))
-                   related_record = below_model.objects.get(**kwds)
-                   field_val = related_record
-                print("   {0}: {1}".format(field_name, field_val))
-                setattr(backing_record, field_name, field_val)
-            backing_record.save()
+        # Stuff
         super(AbstractLocallyBackedObject, self).process_on_save_signal(sender, **kwargs)
 
-    #def delete(self, using=None):
-    #    # delete stuff
-    #    super(AbstractLocallyBackedObject, self).delete(using=using)
+    def delete(self, using=None):
+        # delete stuff
+        super(AbstractLocallyBackedObject, self).delete(using=using)
 
 
 class AbstractRemotelyBackedObject(AbstractObject):
@@ -211,6 +183,10 @@ class AbstractRemotelyBackedObject(AbstractObject):
     objects = RemoteManager()
 
     def process_on_save_signal(self, sender, **kwargs):
+        """
+        After saving the object locally, we sync the
+        changes to the remotely backed layer as well.
+        """
         print("Inside AbstractRemotelyBackedObject!")
 
         def get_object(instance, url=None):
@@ -221,12 +197,12 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 object_model = instance.__class__
                 if instance.partial_URL:
                     # We already have a partial url in the database.
-                    rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, model=object_model)
+                    rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, object_type=self.object_type)
                 else:
-                    field_key = instance.below_key
+                    field_key = instance.lookup_field
                     kwds = { field_key : getattr(instance, field_key) }
                     try:
-                        rv_adaptor = ci.get_object(model=object_model, object_type=self.object_type, **kwds)
+                        rv_adaptor = ci.get_object(object_type=self.object_type, **kwds)
                     except HTTPError:
                         return None
                 return rv_adaptor
@@ -236,28 +212,37 @@ class AbstractRemotelyBackedObject(AbstractObject):
             res = get_object(instance)
             if not res:
                 # Push the object on the backer via the REST API.
-                rv_adaptor = ci.create_object(model=object_model, object_type=self.object_type, data=data)
+                extra_args = {}
+                if self.object_type == 'settings':
+                    extra_args = { 'fqdn_listname': instance.mailinglist.fqdn_listname }
+                rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **extra_args)
                 return rv_adaptor
             else:
                 return res
+
+        def prepare_backing_data(instance):
+            backing_data = {}
+            for field_name in instance.fields:
+                field_val = getattr(instance, field_name)
+                if isinstance(field_val, AbstractRemotelyBackedObject):
+                    if field_val.partial_URL:
+                        related_url = urljoin(settings.API_BASE_URL, field_val.partial_URL)
+                    else:
+                        raise Exception('Related Object not Available')
+                    field_val = related_url
+                backing_data[field_name] = field_val
+            return backing_data
+
 
         # Handle post_save
         instance = kwargs['instance']
         print('Post_save {object_type} in {layer} layer'.format(layer=self.layer, object_type=self.object_type))
 
-        # Prepare backing data
-        backing_data = {}
-        for field_name in instance.fields:
-            field_val = getattr(instance, field_name)
-            if isinstance(field_val, AbstractRemotelyBackedObject):
-                if field_val.partial_URL:
-                    related_url = urljoin(settings.API_BASE_URL, field_val.partial_URL)
-                else:
-                    raise Exception('Related Object not Available')
-                field_val = related_url
-            backing_data[field_name] = field_val
+        backing_data = prepare_backing_data(instance)
 
         # handle object get/create
+        disallow_updates = ['domain', ]
+
         if kwargs.get('created'):
             print("data: ", backing_data)
             res = get_or_create_object(instance, data=backing_data)
@@ -268,11 +253,11 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 # Update the information at the back with new data.
                 # >> Depends on the object_type
             else:
-                if instance.object_type != 'domain':
+                if instance.object_type not in disallow_updates:
                     ci.update_object(partial_url=instance.partial_URL, data=backing_data)
         else:
             # PATCH the fields in back.
-            if instance.object_type != 'domain':
+            if instance.object_type not in disallow_updates:
                 ci.update_object(partial_url=instance.partial_URL, data=backing_data)
         super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
 

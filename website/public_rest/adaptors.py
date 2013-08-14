@@ -54,7 +54,6 @@ class SplitAdaptor(BaseAdaptor):
     pass
 
 
-#TODO: `url` field for each adaptor.
 class DomainAdaptor(BaseAdaptor):
     """
     An Adaptor, which does the job of wrapping and unwrapping
@@ -134,7 +133,56 @@ class DomainAdaptor(BaseAdaptor):
                 if entry['list_name'] == listname:
                     return ListAdaptor(self._connection, entry['self_link'])
 
-'''
+
+class AddressAdaptor(BaseAdaptor):
+    def __init__(self, connection, url):
+        self._connection = connection
+        self._url = url
+        self._info = {}
+
+    def __repr__(self):
+        return '<AddressAdaptor {0}>'.format(self.email)
+
+    def _get_info(self):
+        if not self._info:
+            response, content = self._connection.call(self._url)
+            self._info = content
+
+    @property
+    def display_name(self):
+        """
+        Will only be available for addresses
+        associated with users.
+        """
+        self._get_info()
+        return self._info.get('display_name')
+
+    @property
+    def registered_on(self):
+        self._get_info()
+        return self._info.get('registered_on')
+
+    @property
+    def verified_on(self):
+        self._get_info()
+        return self._info.get('verified_on')
+
+    @property
+    def email(self):
+        self._get_info()
+        return self._info.get('email')
+
+    def verify(self):
+        self._connection.call('addresses/{0}/verify'
+                              .format(self._info['email']), method='POST')
+        self._info = None
+
+    def unverify(self):
+        self._connection.call('addresses/{0}/unverify'
+                              .format(self._info['email']), method='POST')
+        self._info = None
+
+
 class UserAdaptor(BaseAdaptor):
     def __init__(self, connection, url):
         self.connection = connection
@@ -157,7 +205,7 @@ class UserAdaptor(BaseAdaptor):
 
     #@property
     #def addresses(self):
-    #    return _Addresses(self.connection, self.user_id)
+    #    return Addresses(self.connection, self.user_id)
 
     @property
     def display_name(self):
@@ -526,6 +574,7 @@ class ListAdaptor(BaseAdaptor):
             'lists/{0}'.format(self.fqdn_listname), None, 'DELETE')
 
 
+
 LIST_READ_ONLY_ATTRS = ('bounces_address', 'created_at', 'digest_last_sent_at',
                         'fqdn_listname', 'http_etag', 'mail_host',
                         'join_address', 'last_post_at', 'leave_address',
@@ -578,5 +627,4 @@ class SettingsAdaptor(BaseAdaptor):
                 data[attribute] = value
         response, content = self._connection.call(self._url, data, 'PATCH')
 
-'''
 
