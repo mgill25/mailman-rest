@@ -353,7 +353,7 @@ class ListAdaptor(BaseAdaptor):
             self._info = data
 
     def __repr__(self):
-        return '<List "{0}">'.format(self.fqdn_listname)
+        return '<ListAdaptor "{0}">'.format(self.fqdn_listname)
 
     def _get_info(self):
         if self._info is None:

@@ -82,7 +82,7 @@ class Connection(object):
             headers['Authorization'] = 'Basic ' + self.basic_auth
         url = urljoin(self.base_url, path)
         try:
-            # print('url: {0}, base_url: {1}, path: {2}'.format(url, self.base_url, path))
+            #print('url: {0}, base_url: {1}, path: {2}'.format(url, self.base_url, path))
             response, content = Http().request(url, method, data, headers)
             # If we did not get a 2xx status code, make this look like a
             # urllib2 exception, for backward compatibility.
@@ -176,10 +176,16 @@ class CoreInterface(object):
 
 
     def get_listsettings(self, fqdn_listname):
-        if list_name is not None:
+        if fqdn_listname is not None:
             response, content = self.connection.call(
                     'lists/{0}/config'.format(fqdn_listname))
             return SettingsAdaptor(self.connection)
+
+    def get_mailinglist(self, fqdn_listname):
+        if fqdn_listname is not None:
+            response, content = self.connection.call(
+                'lists/{fqdn_listname}'.format(fqdn_listname=fqdn_listname))
+            return ListAdaptor(self.connection, content['self_link'])
 
     # Some generic functions
     def get_model_from_object(self, object_type):
@@ -196,7 +202,7 @@ class CoreInterface(object):
         """
         if partial_url and object_type:
             model = self.get_model_from_object(object_type)
-            return self.get_object_from_url(partial_url=partial_url, model=model)
+            return self.get_object_from_url(partial_url=partial_url, object_type=object_type)
         elif kwargs and object_type and not partial_url:
             imethod = getattr(self, 'get_' + object_type)
             rv = imethod(**kwargs)
@@ -232,6 +238,8 @@ class CoreInterface(object):
             endpoint = 'addresses'
         elif object_type == 'listsettings':
             endpoint = 'lists/{0}/config'.format(kwargs['fqdn_listname'])
+        elif object_type == 'mailinglist':
+            endpoint = 'lists'
         else:
             endpoint = object_type + 's'
         return endpoint

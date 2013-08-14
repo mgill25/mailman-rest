@@ -308,6 +308,8 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         return self.membership_set.get(address=address)
 
 class MailingList(AbstractMailingList, AbstractRemotelyBackedObject):
+    object_type = 'mailinglist'
+    adaptor = ListAdaptor
     fields = ['fqdn_listname',]
 
     class Meta:

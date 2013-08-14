@@ -241,6 +241,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
         backing_data = prepare_backing_data(instance)
 
         # handle object get/create
+        # TODO: Properly handle disallowed methods for objects
+
         disallow_updates = ['domain', ]
 
         if kwargs.get('created'):
