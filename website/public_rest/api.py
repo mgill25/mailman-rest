@@ -191,7 +191,7 @@ class CoreInterface(object):
         """Return all memberships for a given email address."""
         if email is not None:
             response, content = self.connection.call(
-                    'members/find'.format(email))
+                    'members/find', data={'subscriber': email})
             if content['total_size'] > 0:
                 return [MembershipAdaptor(self.connection, entry['self_link'])
                         for entry in content['entries']]
