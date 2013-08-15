@@ -187,6 +187,49 @@ class CoreInterface(object):
                 'lists/{fqdn_listname}'.format(fqdn_listname=fqdn_listname))
             return ListAdaptor(self.connection, content['self_link'])
 
+    def get_memberships(self, email):
+        """Return all memberships for a given email address."""
+        if email is not None:
+            response, content = self.connection.call(
+                    'members/find'.format(email))
+            if content['total_size'] > 0:
+                return [MembershipAdaptor(self.connection, entry['self_link'])
+                        for entry in content['entries']]
+            else:
+                return []
+
+    def get_list_memberships(self, fqdn_listname):
+        """
+        Get all memberships for a mailing list.
+        """
+        if fqdn_listname is not None:
+            s = 'lists/{0}'.format(fqdn_listname)
+
+            res, member_content = self.connection.call('{0}/roster/member'.format(s))
+            res, mod_content = self.connection.call('{0}/roster/moderator'.format(s))
+            res, owner_content = self.connection.call('{0}/roster/owner'.format(s))
+
+            if member_content['total_size'] > 0:
+                members = [MembershipAdaptor(self.connection, entry['self_link'])
+                        for entry in member_content['entries']]
+            else:
+                members = []
+
+            if mod_content['total_size'] > 0:
+                mods = [MembershipAdaptor(self.connection, entry['self_link'])
+                        for entry in mod_content['entries']]
+            else:
+                mods = []
+
+            if owner_content['total_size'] > 0:
+                owners = [MembershipAdaptor(self.connection, entry['self_link'])
+                        for entry in owner_content['entries']]
+            else:
+                owners = []
+
+            return members + mods + owners
+
+
     # Some generic functions
     def get_model_from_object(self, object_type):
         return get_model(__file__.split('/')[-2], object_type)

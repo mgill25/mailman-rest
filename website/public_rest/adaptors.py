@@ -249,7 +249,7 @@ class UserAdaptor(BaseAdaptor):
                     data={'subscriber': address})
                 try:
                     for entry in content['entries']:
-                        subscriptions.append(_Member(self.connection,
+                        subscriptions.append(MembershipAdaptor(self.connection,
                             entry['self_link']))
                 except KeyError:
                     pass
@@ -409,13 +409,13 @@ class ListAdaptor(BaseAdaptor):
         response, content = self._connection.call(url)
         if 'entries' not in content:
             return []
-        return [_Member(self._connection, entry['self_link'])
+        return [MembershipAdaptor(self._connection, entry['self_link'])
                 for entry in sorted(content['entries'],
                                     key=itemgetter('address'))]
 
     def get_member_page(self, count=50, page=1):
         url = 'lists/{0}/roster/member'.format(self.fqdn_listname)
-        return _Page(self._connection, url, _Member, count, page)
+        return _Page(self._connection, url, MembershipAdaptor, count, page)
 
     @property
     def settings(self):
@@ -444,7 +444,8 @@ class ListAdaptor(BaseAdaptor):
 
     @property
     def requests(self):
-        """Return a list of dicts with subscription requests.
+        """
+        Return a list of dicts with subscription requests.
         """
         response, content = self._connection.call(
             'lists/{0}/requests'.format(self.fqdn_listname), None, 'GET')
@@ -551,7 +552,7 @@ class ListAdaptor(BaseAdaptor):
             display_name=display_name,
         )
         response, content = self._connection.call('members', data)
-        return _Member(self._connection, response['location'])
+        return MembershipAdaptor(self._connection, response['location'])
 
     def unsubscribe(self, address):
         """Unsubscribe an email address from a mailing list.
@@ -627,4 +628,59 @@ class SettingsAdaptor(BaseAdaptor):
                 data[attribute] = value
         response, content = self._connection.call(self._url, data, 'PATCH')
 
+
+class MembershipAdaptor(BaseAdaptor):
+    def __init__(self, connection, url):
+        self._connection = connection
+        self._url = url
+        self._info = {}
+        self._preferences = None
+
+    def __repr__(self):
+        return '<Membership "{0}" on "{1}">'.format(
+            self.address, self.list_id)
+
+    def _get_info(self):
+        if not self._info:
+            response, content = self._connection.call(self._url)
+            self._info = content
+
+    @property
+    def list_id(self):
+        self._get_info()
+        return self._info['list_id']
+
+    @property
+    def address(self):
+        self._get_info()
+        return self._info['address']
+
+    @property
+    def self_link(self):
+        self._get_info()
+        return self._info['self_link']
+
+    @property
+    def role(self):
+        self._get_info()
+        return self._info['role']
+
+    @property
+    def user(self):
+        self._get_info()
+        return UserAdaptor(self._connection, self._info['user'])
+
+    @property
+    def preferences(self):
+        if self._preferences is None:
+            path = '{0}/preferences'.format(self.self_link)
+            self._preferences = PreferencesAdaptor(self._connection, path)
+        return self._preferences
+
+    def unsubscribe(self):
+        """Unsubscribe the member from a mailing list.
+
+        :param self_link: The REST resource to delete
+        """
+        self._connection.call(self.self_link, method='DELETE')
 

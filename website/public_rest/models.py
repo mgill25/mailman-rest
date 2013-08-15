@@ -548,6 +548,11 @@ class MemberPrefs(BaseMembershipPrefs):
 
 class Membership(BaseModel):
     """A Membership is created when a User subscribes to a MailingList"""
+
+    object_type = 'membership'
+    adaptor = MembershipAdaptor
+    fields = []
+
     OWNER = 'owner'
     MODERATOR = 'moderator'
     MEMBER = 'member'
