@@ -629,6 +629,7 @@ class Membership(BaseModel, AbstractLocallyBackedObject):
         Make sure the lower model is created as well.
         """
         if self.pk is None:
+            super(Membership, self).save(*args, **kwargs)
             if self.role == self.MEMBER:
                 self._member = Member(user=self.user, address=self.address, mlist=self.mlist)
                 self._member.save()
@@ -657,7 +658,7 @@ class Membership(BaseModel, AbstractLocallyBackedObject):
 
     def get_backing_model(self):
         """Override"""
-        if self.role == self.MEMBER:
+        if self.role == self.OWNER:
             return Owner
         elif self.role == self.MODERATOR:
             return Moderator

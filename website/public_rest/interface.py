@@ -203,10 +203,10 @@ class AbstractLocallyBackedObject(AbstractObject):
 
     def delete(self, using=None):
         # First delete locally
-        obj_below = self.layer_below
+        #obj_below = self.layer_below
         super(AbstractLocallyBackedObject, self).delete(using=using)
         # Now delete remotely
-        obj_below.delete()
+        #obj_below.delete()
 
     def delete_local(self, using=None):
         """Only perform local delete"""
