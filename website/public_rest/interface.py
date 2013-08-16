@@ -98,7 +98,7 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                 url = urljoin(lower_url, '?{params}'.format(params=params))
             else:
                 url = lower_url
-            adaptor_list = ci.get_all_from_url(url)
+            adaptor_list = ci.get_all_from_url(url, object_type=self.model.object_type)
             if len(adaptor_list) == 0:
                 return EmptyQuerySet()
             elif len(adaptor_list) > 0:
@@ -161,21 +161,60 @@ class AbstractLocallyBackedObject(AbstractObject):
 
     objects = LocalManager()
 
-    def save(self, *args, **kwargs):
-        # Stuff
-        super(AbstractLocallyBackedObject, self).save(*args, **kwargs)
+    #def save(self, *args, **kwargs):
+    #    print("Inside AbstractLocallyBackedObject save()")
+    #    # Ensure that local object is always related to layer below
+    #    lower_model = self.get_backing_model()
+    #    print("lower_model: {0}".format(lower_model))
+    #    # Get the arguments associated with our model that might be available at back.
+    #    filter_args = {self.lookup_field: getattr(self, self.lookup_field)}
+    #    print('Backing {object_type} with {filter}'.format(object_type=self.object_type, filter=filter_args))
+    #    try:
+    #        backing_record = lower_model.objects.get(**filter_args)
+    #    except lower_mode.DoesNotExist:
+    #        backing_record = lower_model.objects.create(**filter_args)
+    #    #self.layer_below = backing_record
+    #    #print('Saving {object_type}({pk}) in {layer} layer'.format(layer=self.layer, object_type=self.object_type, pk=self.pk))
+    #    super(AbstractLocallyBackedObject, self).save(*args, **kwargs)
 
     def process_on_save_signal(self, sender, **kwargs):
-        # Stuff
+        print("Inside AbstractLocallyBackedObject post_save()")
+        instance = kwargs['instance']
+        print('Post_save {object_type}'.format(object_type=self.object_type))
+        lookup_args = {self.lookup_field: getattr(self, self.lookup_field)}
+        backing_record = self.get_backing_model().objects.get(**lookup_args)
+        print('===Backup is to {object_type}({0})'.format(backing_record, object_type=backing_record.object_type))
+        if backing_record:
+            for local_field_name, remote_field_name in self.fields:
+                field_val = getattr(self, local_field_name)
+                if isinstance(field_val, AbstractObject):
+                   #self.get_logger().debug("+  {0}: {1}".format(local_field_name, field_val))
+                   ## Convert field_val to a model
+                   #self.get_logger().debug("        Converting to {0}".format(below_model))
+                   field_key = self.lookup_field
+                   kwds = { field_key : getattr(field_val, field_key) }
+                   #self.get_logger().debug("        Creating {0} from {1}".format(local_field_name, kwds))
+                   related_record = below_model.objects.get(**kwds)
+                   field_val = related_record
+                print("   {0}: {1}".format(local_field_name, field_val))
+                setattr(backing_record, local_field_name, field_val)
+            backing_record.save()
         super(AbstractLocallyBackedObject, self).process_on_save_signal(sender, **kwargs)
 
     def delete(self, using=None):
-        # delete stuff
+        # First delete locally
+        obj_below = self.layer_below
         super(AbstractLocallyBackedObject, self).delete(using=using)
+        # Now delete remotely
+        obj_below.delete()
+
+    def delete_local(self, using=None):
+        """Only perform local delete"""
+        return super(AbstractLocallyBackedObject, self).delete(using=using)
 
 
 class AbstractRemotelyBackedObject(AbstractObject):
-    partial_URL = models.CharField(max_length=100)
+    partial_URL = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -244,12 +283,13 @@ class AbstractRemotelyBackedObject(AbstractObject):
 
         # handle object get/create
         # TODO: Properly handle disallowed methods for objects
-        disallow_updates = ['domain', ]
+        disallow_updates = ['domain', 'mailinglist',]
 
         if kwargs.get('created'):
             print("data: ", backing_data)
             res = get_or_create_object(instance, data=backing_data)
             if res:
+                print("result: ", res)
                 # Create a peer thing and associate the url with it.
                 instance.partial_URL = urlsplit(res.url).path
                 instance.save()

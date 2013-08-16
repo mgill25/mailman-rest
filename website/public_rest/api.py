@@ -187,7 +187,7 @@ class CoreInterface(object):
                 'lists/{fqdn_listname}'.format(fqdn_listname=fqdn_listname))
             return ListAdaptor(self.connection, content['self_link'])
 
-    def get_memberships(self, email):
+    def get_membership(self, email):
         """Return all memberships for a given email address."""
         if email is not None:
             response, content = self.connection.call(

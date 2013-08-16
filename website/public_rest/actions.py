@@ -16,14 +16,18 @@ from public_rest.adaptors import *
 def on_MailingList_save(sender, **kwargs):
     kwargs['instance'].process_on_save_signal(sender, **kwargs)
 
-@receiver(post_save, sender=User)
-def on_User_save(sender, **kwargs):
-    kwargs['instance'].process_on_save_signal(sender, **kwargs)
+#@receiver(post_save, sender=User)
+#def on_User_save(sender, **kwargs):
+#    kwargs['instance'].process_on_save_signal(sender, **kwargs)
 
 @receiver(post_save, sender=Domain)
 def on_Domain_save(sender, **kwargs):
     kwargs['instance'].process_on_save_signal(sender, **kwargs)
 
-@receiver(post_save, sender=Email)
-def on_Email_save(sender, **kwargs):
+#@receiver(post_save, sender=Email)
+#def on_Email_save(sender, **kwargs):
+#    kwargs['instance'].process_on_save_signal(sender, **kwargs)
+
+@receiver(post_save, sender=Membership)
+def on_Membership_save(sender, **kwargs):
     kwargs['instance'].process_on_save_signal(sender, **kwargs)

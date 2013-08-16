@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-ERROR: Import Loop:
-interface -> api -> adaptor -> interface
-"""
 import re
 import json
 
@@ -361,6 +357,12 @@ class ListAdaptor(BaseAdaptor):
             self._info = content
 
     @property
+    def url(self):
+        self._get_info()
+        return self._info['self_link']
+
+
+    @property
     def owners(self):
         url = self._url + '/roster/owner'
         response, content = self._connection.call(url)
@@ -637,7 +639,7 @@ class MembershipAdaptor(BaseAdaptor):
         self._preferences = None
 
     def __repr__(self):
-        return '<Membership "{0}" on "{1}">'.format(
+        return '<MembershipAdaptor "{0}" on "{1}">'.format(
             self.address, self.list_id)
 
     def _get_info(self):
@@ -684,3 +686,17 @@ class MembershipAdaptor(BaseAdaptor):
         """
         self._connection.call(self.self_link, method='DELETE')
 
+class MemberAdaptor(MembershipAdaptor):
+    def __repr__(self):
+        return '<MemberAdaptor "{0}" on "{1}">'.format(
+            self.address, self.list_id)
+
+class OwnerAdaptor(MembershipAdaptor):
+    def __repr__(self):
+        return '<MembershipAdaptor "{0}" on "{1}">'.format(
+            self.address, self.list_id)
+
+class ModeratorAdaptor(MembershipAdaptor):
+    def __repr__(self):
+        return '<ModeratorAdaptor "{0}" on "{1}">'.format(
+            self.address, selef.list_id)

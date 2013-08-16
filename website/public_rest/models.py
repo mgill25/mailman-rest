@@ -233,17 +233,10 @@ class CoreListMixin(models.Model):
 class LocalListMixin(models.Model):
     """Fields that are added by us, locally."""
 
-    peer_url = models.URLField()
-    peer_etag = models.CharField(max_length=50)
-
     def save(self, *args, **kwargs):
         if self.pk is None:
             # Create a new list at the given mail_host Domain
             domain = interface.get_domain(mail_host=self.mail_host)
-            if domain:
-                peer_list = domain.create_list(self.list_name)
-                self.peer_url = peer_list._info['self_link']
-                self.peer_etag = peer_list._info['http_etag']
             super(LocalListMixin, self).save(*args, **kwargs)
         else:
             super(LocalListMixin, self).save(*args, **kwargs)
@@ -254,6 +247,11 @@ class LocalListMixin(models.Model):
 
 class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     objects = ListManager()
+
+    object_type = 'mailinglist'
+    adaptor = ListAdaptor
+    fields = [('fqdn_listname', 'fqdn_listname'),]
+    lookup_field = 'fqdn_listname'
 
     class Meta:
         abstract = True
@@ -308,10 +306,6 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         return self.membership_set.get(address=address)
 
 class MailingList(AbstractMailingList, AbstractRemotelyBackedObject):
-    object_type = 'mailinglist'
-    adaptor = ListAdaptor
-    fields = [('fqdn_listname', 'fqdn_listname'),]
-
     class Meta:
         swappable = 'MAILINGLIST_MODEL'
 
@@ -359,8 +353,8 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
     def __unicode__(self):
         return self.mail_host
 
-
-class Email(BaseModel, AbstractRemotelyBackedObject):
+# AbstractRemotelyBackedObject
+class Email(BaseModel):
 
     object_type='email'
     lookup_field = 'address'
@@ -391,13 +385,6 @@ class UserManager(BaseUserManager):
             raise ValueError("No display_name Provided!")
         if not password:
             raise ValueError("No Password Provided!")
-        # Create the User at Core
-        try:
-            self.model.peer = interface.create_user(email, password, display_name)
-        except HTTPError as e:
-            print("Error: {0}".format(e.msg))
-        except Exception as e:
-            print("{0}-{1}".format(type(e), str(e)))
         user = self.model(display_name=display_name)
         user.save()
         user.add_email(email)
@@ -430,10 +417,6 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     preferred_email = models.OneToOneField(Email, null=True,
                                            related_name='%(class)s_preferred')
-    peer_user_id = models.CharField(max_length=40, null=True)
-    peer_url = models.URLField(null=True, help_text=_('URL of the Interface to connect to'
-                               ' in order to get the corresponding object at the Peer (Core)'))
-    peer_etag = models.CharField(max_length=50, help_text=_('ETag of the Peer object'))
     #TODO peer_expiration_timestamp = models.DateTimeField(null=True)
 
     USERNAME_FIELD = 'display_name'
@@ -489,13 +472,12 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
         if self.pk is None:
                 super(AbstractUser, self).save(*args, **kwargs)
                 self.prefs = UserPrefs(user=self)
-                self.prefs.peer_etag = self.peer.preferences['http_etag']
                 self.prefs.save()
         else:
             super(AbstractUser, self).save(*args, **kwargs)
 
-
-class User(AbstractUser, AbstractRemotelyBackedObject):
+# AbstractRemotelyBackedObject
+class User(AbstractUser):
     fields = [('display_name', 'display_name'), ('email', 'email'),
             ('password', 'password')]
     object_type = 'user'
@@ -529,29 +511,104 @@ class UserPrefs(BasePrefs):
 
 # Membership Preferences
 class BaseMembershipPrefs(BasePrefs):
+    """
+    Besides being associated with their own Owner/Moderator/Member,
+    each preference object is also associated with Membership.
+    """
     membership = models.OneToOneField('Membership')
     class Meta:
         abstract = True
 
 
 class OwnerPrefs(BaseMembershipPrefs):
-    pass
+    owner = models.OneToOneField('Owner', null=True)
 
 
 class ModeratorPrefs(BaseMembershipPrefs):
-    pass
+    moderator = models.OneToOneField('Moderator', null=True)
 
 
 class MemberPrefs(BaseMembershipPrefs):
-    pass
+    member = models.OneToOneField('Member', null=True)
 
 
-class Membership(BaseModel):
+# Membership and related models
+class Roster(models.Model):
+    """
+    Base class for moderators, members, and owners.
+    """
+    class Meta:
+        abstract = True
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    mlist = models.ForeignKey(MailingList, null=True)
+    address = models.EmailField()
+
+class Member(Roster):
+    object_type='member'
+    adaptor = MemberAdaptor
+
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            print("self.membership: {0}".format(self.membership))
+            super(Member, self).save(*args, **kwargs)
+            prefs = MemberPrefs(membership=self.membership, member=self)
+            prefs.save()
+            super(Member, self).save(*args, **kwargs)
+        else:
+            super(Member, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        return '<Member {0} on {1}>'.format(self.address, self.mlist.fqdn_listname)
+
+class Owner(Roster):
+    object_type = 'owner'
+    adaptor = OwnerAdaptor
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            super(Owner, self).save(*args, **kwargs)
+            prefs = OwnerPrefs(membership=self.membership)
+            prefs.save()
+            self.prefs = prefs
+            super(Owner, self).save(*args, **kwargs)
+        else:
+            super(Owner, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        return '<Owner {0} on {1}>'.format(self.address, self.mlist.fqdn_listname)
+
+class Moderator(Roster):
+    object_type = 'moderator'
+    adaptor = ModeratorAdaptor
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            super(Moderator, self).save(*args, **kwargs)
+            prefs = ModeratorPrefs(membership=self.membership)
+            prefs.save()
+            self.prefs = prefs
+            super(Moderator, self).save(*args, **kwargs)
+        else:
+            super(Moderator, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        return '<Moderator {0} on {1}>'.format(self.address, self.mlist.fqdn_listname)
+
+
+class Membership(BaseModel, AbstractLocallyBackedObject):
     """A Membership is created when a User subscribes to a MailingList"""
 
     object_type = 'membership'
     adaptor = MembershipAdaptor
-    fields = []
+    lookup_field = 'address'              #TODO: This has to be unique, but for memberships, email isn't.
+    fields = [('user', 'user'), ('mlist', 'mlist'), ('address', 'address')]
+
+    _owner = models.OneToOneField(Owner, null=True)
+    _moderator = models.OneToOneField(Moderator, null=True)
+    _member = models.OneToOneField(Member, null=True)
+
 
     OWNER = 'owner'
     MODERATOR = 'moderator'
@@ -562,9 +619,28 @@ class Membership(BaseModel):
             (MEMBER, 'Member')
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    mlist = models.ForeignKey(MailingList)
-    address = models.EmailField()
+    mlist = models.ForeignKey(MailingList, null=True)
+    address = models.EmailField()         #TODO: This should be associated with Email, but that's too many relations atm. *Sigh*
+
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=MEMBER)
+
+    def save(self, *args, **kwargs):
+        """
+        Make sure the lower model is created as well.
+        """
+        if self.pk is None:
+            if self.role == self.MEMBER:
+                self._member = Member(user=self.user, address=self.address, mlist=self.mlist)
+                self._member.save()
+            elif self.role == self.OWNER:
+                self._owner = Owner(user=self.user, address=self.address, mlist=self.mlist)
+                self._owner.save()
+            elif self.role == self.MODERATOR:
+                self._moderator = Moderator(user=self.user, address=self.address, mlist=self.mlist)
+                self._moderator.save()
+            super(Membership, self).save(*args, **kwargs)
+        else:
+            super(Membership, self).save(*args, **kwargs)
 
     def is_owner(self):
         return self.role == self.OWNER
@@ -579,20 +655,14 @@ class Membership(BaseModel):
         """Unsubscribe from this list"""
         self.delete()
 
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            # First save this object
-            super(Membership, self).save(*args, **kwargs)
-            # Then save the preferences
-            if self.role == self.MEMBER:
-                prefs = MemberPrefs(membership=self)
-            elif self.role == self.MODERATOR:
-                prefs = ModeratorPrefs(membership=self)
-            elif self.role == self.OWNER:
-                prefs = OwnerPrefs(membership=self)
-            prefs.save()
-        else:
-            super(Membership, self).save(*args, **kwargs)
+    def get_backing_model(self):
+        """Override"""
+        if self.role == self.MEMBER:
+            return Owner
+        elif self.role == self.MODERATOR:
+            return Moderator
+        elif self.role == self.MEMBER:
+            return Member
 
     @property
     def preferences(self):
