@@ -226,10 +226,18 @@ class AbstractRemotelyBackedObject(AbstractObject):
         """
         print("Inside AbstractRemotelyBackedObject!")
 
+        def prepare_related_data(instance):
+            """Prepare data that would be used for looking
+            up objects remotely."""
+            data = {}
+            if self.object_type == 'membership':
+                data['list_id'] = self.mlist.fqdn_listname
+            if self.object_type == 'listsettings':
+                data['fqdn_listname'] = instance.mailinglist.fqdn_listname
+            return data
+
         def get_object(instance, url=None):
-            """
-            Returns the ObjectAdaptor.
-            """
+            """Returns the ObjectAdaptor. """
             print("Getting object...")
             if url is None:
                 object_model = instance.__class__
@@ -239,6 +247,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 else:
                     field_key = instance.lookup_field
                     kwds = { field_key : getattr(instance, field_key) }
+                    kwds.update(prepare_related_data(instance))
                     try:
                         rv_adaptor = ci.get_object(object_type=self.object_type, **kwds)
                     except HTTPError:
@@ -252,10 +261,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
             if not res:
                 print("Nope!!!")
                 # Push the object on the backer via the REST API.
-                extra_args = {}
-                if self.object_type == 'listsettings':
-                    extra_args = { 'fqdn_listname': instance.mailinglist.fqdn_listname }
-                rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **extra_args)
+                kwds = prepare_related_data(instance)
+                rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **kwds)
                 return rv_adaptor
             else:
                 return res
@@ -302,6 +309,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
         else:
             # PATCH the fields in back.
             if instance.object_type not in disallow_updates:
+                print("partial_url: {0}".format(instance.partial_URL))
                 ci.update_object(partial_url=instance.partial_URL, data=backing_data)
         super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
 

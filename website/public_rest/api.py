@@ -82,7 +82,7 @@ class Connection(object):
             headers['Authorization'] = 'Basic ' + self.basic_auth
         url = urljoin(self.base_url, path)
         try:
-            #print('url: {0}, base_url: {1}, path: {2}'.format(url, self.base_url, path))
+            print('url: {0}, base_url: {1}, path: {2}'.format(url, self.base_url, path))
             response, content = Http().request(url, method, data, headers)
             # If we did not get a 2xx status code, make this look like a
             # urllib2 exception, for backward compatibility.
@@ -187,8 +187,18 @@ class CoreInterface(object):
                 'lists/{fqdn_listname}'.format(fqdn_listname=fqdn_listname))
             return ListAdaptor(self.connection, content['self_link'])
 
-    def get_membership(self, address):
-        """Return all memberships for a given email address."""
+    def get_membership(self, address, list_id):
+        """Return a given membership subscription on a list."""
+        if address is not None:
+            response, content = self.connection.call(
+                    'members/find', data={'subscriber': address, 'list_id': list_id})
+            if content['total_size'] == 1:
+                return MembershipAdaptor(self.connection, entry['self_link'])
+
+    def get_memberships_by_address(self, address):
+        """
+        Get all memberships for a given subscriber address.
+        """
         if address is not None:
             response, content = self.connection.call(
                     'members/find', data={'subscriber': address})
@@ -198,7 +208,7 @@ class CoreInterface(object):
             else:
                 return []
 
-    def get_list_memberships(self, fqdn_listname):
+    def get_memberships_by_list(self, fqdn_listname):
         """
         Get all memberships for a mailing list.
         """
@@ -288,17 +298,17 @@ class CoreInterface(object):
             endpoint = object_type + 's'
         return endpoint
 
-    def sanitize_data(self, data):
+    def sanitize_post_data(self, data):
         """
-        Hacky function to prepare data before making API calls.
+        Sanitize data before making API calls.
         """
         rv = {}
         if data.has_key('mlist'):
             rv['list_id'] = urlsplit(data['mlist']).path.split('lists/')[1]
-        if data.has_key('user'):
-            pass
         if data.has_key('address'):
             rv['subscriber'] = data['address']
+        if data.has_key('fqdn_listname'):
+            rv['fqdn_listname'] = data['fqdn_listname']
         print("sanitized rv: {0}".format(rv))
         return rv
 
@@ -313,7 +323,7 @@ class CoreInterface(object):
         #TODO: How to make sure unnecessary data is not posted?
         print("data: {0}, kwargs: {1}".format(data, kwargs))
         endpoint = self.get_api_endpoint(object_type, **kwargs)
-        data = self.sanitize_data(data)
+        data = self.sanitize_post_data(data)
         response, content = self.connection.call(endpoint, data=data, method='POST')
         partial_url = urlsplit(response['location']).path
         model = self.get_model_from_object(object_type)
@@ -323,7 +333,6 @@ class CoreInterface(object):
         """
         `PATCH` the API to update objects (If method allowed)
         """
-        data = self.sanitize_data(data)
         response, content = self.connection.call(partial_url, data=data, method='PATCH')
         model = self.get_model_from_object(object_type)
         return model.adaptor(self.connection, partial_url)
