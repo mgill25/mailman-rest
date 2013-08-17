@@ -161,27 +161,25 @@ class AbstractLocallyBackedObject(AbstractObject):
 
     objects = LocalManager()
 
-    #def save(self, *args, **kwargs):
-    #    print("Inside AbstractLocallyBackedObject save()")
-    #    # Ensure that local object is always related to layer below
-    #    lower_model = self.get_backing_model()
-    #    print("lower_model: {0}".format(lower_model))
-    #    # Get the arguments associated with our model that might be available at back.
-    #    filter_args = {self.lookup_field: getattr(self, self.lookup_field)}
-    #    print('Backing {object_type} with {filter}'.format(object_type=self.object_type, filter=filter_args))
-    #    try:
-    #        backing_record = lower_model.objects.get(**filter_args)
-    #    except lower_mode.DoesNotExist:
-    #        backing_record = lower_model.objects.create(**filter_args)
-    #    #self.layer_below = backing_record
-    #    #print('Saving {object_type}({pk}) in {layer} layer'.format(layer=self.layer, object_type=self.object_type, pk=self.pk))
-    #    super(AbstractLocallyBackedObject, self).save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        print("Inside AbstractLocallyBackedObject save()")
+        #Ensure that local object is always related to layer below
+        lower_model = self.get_backing_model()
+        print("lower_model: {0}".format(lower_model))
+        # Get the arguments associated with our model that might be available at back.
+        filter_args = {self.lookup_field: getattr(self, self.lookup_field)}
+        print('Backing {object_type} with {filter}'.format(object_type=self.object_type, filter=filter_args))
+        backing_record = lower_model.objects.get_or_create(**filter_args)
+        #self.layer_below = backing_record
+        #print('Saving {object_type}({pk}) in {layer} layer'.format(layer=self.layer, object_type=self.object_type, pk=self.pk))
+        super(AbstractLocallyBackedObject, self).save(*args, **kwargs)
 
     def process_on_save_signal(self, sender, **kwargs):
         print("Inside AbstractLocallyBackedObject post_save()")
         instance = kwargs['instance']
         print('Post_save {object_type}'.format(object_type=self.object_type))
         lookup_args = {self.lookup_field: getattr(self, self.lookup_field)}
+        print("lookup_args: {0}".format(lookup_args))
         backing_record = self.get_backing_model().objects.get(**lookup_args)
         print('===Backup is to {object_type}({0})'.format(backing_record, object_type=backing_record.object_type))
         if backing_record:
@@ -232,6 +230,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             """
             Returns the ObjectAdaptor.
             """
+            print("Getting object...")
             if url is None:
                 object_model = instance.__class__
                 if instance.partial_URL:
@@ -247,9 +246,11 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 return rv_adaptor
 
         def get_or_create_object(instance, data=None):
+            print("Creating object...")
             object_model = instance.__class__
             res = get_object(instance)
             if not res:
+                print("Nope!!!")
                 # Push the object on the backer via the REST API.
                 extra_args = {}
                 if self.object_type == 'listsettings':
@@ -289,7 +290,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             print("data: ", backing_data)
             res = get_or_create_object(instance, data=backing_data)
             if res:
-                print("result: ", res)
+                print("result: ", res, type(res))
                 # Create a peer thing and associate the url with it.
                 instance.partial_URL = urlsplit(res.url).path
                 instance.save()

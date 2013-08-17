@@ -187,11 +187,11 @@ class CoreInterface(object):
                 'lists/{fqdn_listname}'.format(fqdn_listname=fqdn_listname))
             return ListAdaptor(self.connection, content['self_link'])
 
-    def get_membership(self, email):
+    def get_membership(self, address):
         """Return all memberships for a given email address."""
-        if email is not None:
+        if address is not None:
             response, content = self.connection.call(
-                    'members/find', data={'subscriber': email})
+                    'members/find', data={'subscriber': address})
             if content['total_size'] > 0:
                 return [MembershipAdaptor(self.connection, entry['self_link'])
                         for entry in content['entries']]
@@ -282,9 +282,25 @@ class CoreInterface(object):
             endpoint = 'lists/{0}/config'.format(kwargs['fqdn_listname'])
         elif object_type == 'mailinglist':
             endpoint = 'lists'
+        elif object_type == 'membership':
+            endpoint = 'members'
         else:
             endpoint = object_type + 's'
         return endpoint
+
+    def sanitize_data(self, data):
+        """
+        Hacky function to prepare data before making API calls.
+        """
+        rv = {}
+        if data.has_key('mlist'):
+            rv['list_id'] = urlsplit(data['mlist']).path.split('lists/')[1]
+        if data.has_key('user'):
+            pass
+        if data.has_key('address'):
+            rv['subscriber'] = data['address']
+        print("sanitized rv: {0}".format(rv))
+        return rv
 
     def create_object(self, object_type=None, data=None, **kwargs):
         """
@@ -294,7 +310,10 @@ class CoreInterface(object):
         # the data. It *might* be the case that an adaptor X
         # is represented by different objects Y and Z at the
         # Mailman Core API.
+        #TODO: How to make sure unnecessary data is not posted?
+        print("data: {0}, kwargs: {1}".format(data, kwargs))
         endpoint = self.get_api_endpoint(object_type, **kwargs)
+        data = self.sanitize_data(data)
         response, content = self.connection.call(endpoint, data=data, method='POST')
         partial_url = urlsplit(response['location']).path
         model = self.get_model_from_object(object_type)
@@ -304,6 +323,7 @@ class CoreInterface(object):
         """
         `PATCH` the API to update objects (If method allowed)
         """
+        data = self.sanitize_data(data)
         response, content = self.connection.call(partial_url, data=data, method='PATCH')
         model = self.get_model_from_object(object_type)
         return model.adaptor(self.connection, partial_url)

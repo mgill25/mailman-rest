@@ -8,7 +8,7 @@ from httplib2 import Http
 from operator import itemgetter
 from urllib import urlencode
 from urllib2 import HTTPError
-from urlparse import urljoin
+from urlparse import urljoin, urlsplit
 
 from django.db import models
 
@@ -145,6 +145,11 @@ class AddressAdaptor(BaseAdaptor):
             self._info = content
 
     @property
+    def url(self):
+        self._get_info()
+        return self._info['self_link']
+
+    @property
     def display_name(self):
         """
         Will only be available for addresses
@@ -198,6 +203,11 @@ class UserAdaptor(BaseAdaptor):
         if not self._info:
             response, content = self.connection.call(self._url)
             self._info = content
+
+    @property
+    def url(self):
+        self._get_info()
+        return self._info['self_link']
 
     #@property
     #def addresses(self):
@@ -632,6 +642,10 @@ class SettingsAdaptor(BaseAdaptor):
 
 
 class MembershipAdaptor(BaseAdaptor):
+    """
+    A Membership is represented as Members, Moderators or Owners
+    in the Core's Roster.
+    """
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url
@@ -646,6 +660,16 @@ class MembershipAdaptor(BaseAdaptor):
         if not self._info:
             response, content = self._connection.call(self._url)
             self._info = content
+
+    @property
+    def url(self):
+        self._get_info()
+        return self._info['self_link']
+
+    @property
+    def partial_url(self):
+        url = self.url
+        return urlsplit(url).path.split('3.0/')[1]
 
     @property
     def list_id(self):
@@ -699,4 +723,4 @@ class OwnerAdaptor(MembershipAdaptor):
 class ModeratorAdaptor(MembershipAdaptor):
     def __repr__(self):
         return '<ModeratorAdaptor "{0}" on "{1}">'.format(
-            self.address, selef.list_id)
+            self.address, self.list_id)

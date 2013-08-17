@@ -521,94 +521,22 @@ class BaseMembershipPrefs(BasePrefs):
 
 
 class OwnerPrefs(BaseMembershipPrefs):
-    owner = models.OneToOneField('Owner', null=True)
-
+    pass
 
 class ModeratorPrefs(BaseMembershipPrefs):
-    moderator = models.OneToOneField('Moderator', null=True)
-
+    pass
 
 class MemberPrefs(BaseMembershipPrefs):
-    member = models.OneToOneField('Member', null=True)
-
+    pass
 
 # Membership and related models
-class Roster(models.Model):
-    """
-    Base class for moderators, members, and owners.
-    """
-    class Meta:
-        abstract = True
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    mlist = models.ForeignKey(MailingList, null=True)
-    address = models.EmailField()
-
-class Member(Roster):
-    object_type='member'
-    adaptor = MemberAdaptor
-
-
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            print("self.membership: {0}".format(self.membership))
-            super(Member, self).save(*args, **kwargs)
-            prefs = MemberPrefs(membership=self.membership, member=self)
-            prefs.save()
-            super(Member, self).save(*args, **kwargs)
-        else:
-            super(Member, self).save(*args, **kwargs)
-
-    def __unicode__(self):
-        return '<Member {0} on {1}>'.format(self.address, self.mlist.fqdn_listname)
-
-class Owner(Roster):
-    object_type = 'owner'
-    adaptor = OwnerAdaptor
-
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            super(Owner, self).save(*args, **kwargs)
-            prefs = OwnerPrefs(membership=self.membership)
-            prefs.save()
-            self.prefs = prefs
-            super(Owner, self).save(*args, **kwargs)
-        else:
-            super(Owner, self).save(*args, **kwargs)
-
-    def __unicode__(self):
-        return '<Owner {0} on {1}>'.format(self.address, self.mlist.fqdn_listname)
-
-class Moderator(Roster):
-    object_type = 'moderator'
-    adaptor = ModeratorAdaptor
-
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            super(Moderator, self).save(*args, **kwargs)
-            prefs = ModeratorPrefs(membership=self.membership)
-            prefs.save()
-            self.prefs = prefs
-            super(Moderator, self).save(*args, **kwargs)
-        else:
-            super(Moderator, self).save(*args, **kwargs)
-
-    def __unicode__(self):
-        return '<Moderator {0} on {1}>'.format(self.address, self.mlist.fqdn_listname)
-
-
-class Membership(BaseModel, AbstractLocallyBackedObject):
+class Membership(BaseModel, AbstractRemotelyBackedObject):
     """A Membership is created when a User subscribes to a MailingList"""
 
     object_type = 'membership'
     adaptor = MembershipAdaptor
     lookup_field = 'address'              #TODO: This has to be unique, but for memberships, email isn't.
     fields = [('user', 'user'), ('mlist', 'mlist'), ('address', 'address')]
-
-    _owner = models.OneToOneField(Owner, null=True)
-    _moderator = models.OneToOneField(Moderator, null=True)
-    _member = models.OneToOneField(Member, null=True)
-
 
     OWNER = 'owner'
     MODERATOR = 'moderator'
@@ -624,25 +552,6 @@ class Membership(BaseModel, AbstractLocallyBackedObject):
 
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=MEMBER)
 
-    def save(self, *args, **kwargs):
-        """
-        Make sure the lower model is created as well.
-        """
-        if self.pk is None:
-            super(Membership, self).save(*args, **kwargs)
-            if self.role == self.MEMBER:
-                self._member = Member(user=self.user, address=self.address, mlist=self.mlist)
-                self._member.save()
-            elif self.role == self.OWNER:
-                self._owner = Owner(user=self.user, address=self.address, mlist=self.mlist)
-                self._owner.save()
-            elif self.role == self.MODERATOR:
-                self._moderator = Moderator(user=self.user, address=self.address, mlist=self.mlist)
-                self._moderator.save()
-            super(Membership, self).save(*args, **kwargs)
-        else:
-            super(Membership, self).save(*args, **kwargs)
-
     def is_owner(self):
         return self.role == self.OWNER
 
@@ -655,15 +564,6 @@ class Membership(BaseModel, AbstractLocallyBackedObject):
     def unsubscribe(self):
         """Unsubscribe from this list"""
         self.delete()
-
-    def get_backing_model(self):
-        """Override"""
-        if self.role == self.OWNER:
-            return Owner
-        elif self.role == self.MODERATOR:
-            return Moderator
-        elif self.role == self.MEMBER:
-            return Member
 
     @property
     def preferences(self):
