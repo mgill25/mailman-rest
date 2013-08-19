@@ -291,7 +291,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
 
         # handle object get/create
         # TODO: Properly handle disallowed methods for objects
-        disallow_updates = ['domain', 'mailinglist',]
+        disallow_updates = ['domain', 'mailinglist', 'membership']   # You can PATCH `deliver_mode` on membership preferences.
 
         if kwargs.get('created'):
             print("data: ", backing_data)
