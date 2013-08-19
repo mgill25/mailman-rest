@@ -177,9 +177,9 @@ class CoreInterface(object):
 
     def get_listsettings(self, fqdn_listname):
         if fqdn_listname is not None:
-            response, content = self.connection.call(
-                    'lists/{0}/config'.format(fqdn_listname))
-            return SettingsAdaptor(self.connection)
+            endpoint = 'lists/{0}/config'.format(fqdn_listname)
+            response, content = self.connection.call(endpoint)
+            return SettingsAdaptor(self.connection, endpoint)
 
     def get_mailinglist(self, fqdn_listname):
         if fqdn_listname is not None:
@@ -329,10 +329,14 @@ class CoreInterface(object):
         model = self.get_model_from_object(object_type)
         return model.adaptor(self.connection, partial_url)
 
-    def update_object(self, partial_url=None, data=None):
+    def update_object(self, object_type=None, partial_url=None, data=None):
         """
         `PATCH` the API to update objects (If method allowed)
         """
-        response, content = self.connection.call(partial_url, data=data, method='PATCH')
         model = self.get_model_from_object(object_type)
-        return model.adaptor(self.connection, partial_url)
+        adaptor = model.adaptor(self.connection, partial_url)
+        if hasattr(adaptor, 'save'):
+            adaptor.save(data=data)
+        else:
+            response, content = self.connection.call(partial_url, data=data, method='PATCH')
+        return adaptor(self.connection, partial_url)

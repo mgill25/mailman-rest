@@ -341,8 +341,7 @@ class PreferencesAdaptor(BaseAdaptor):
     def keys(self):
         return self._preferences.keys()
 
-    def save(self):
-        data = {}
+    def save(self, data={}):
         for key in self._preferences:
             if self._preferences[key] is not None:
                 data[key] = self._preferences[key]
@@ -611,6 +610,12 @@ class SettingsAdaptor(BaseAdaptor):
             response, content = self._connection.call(self._url)
             self._info = content
 
+    @property
+    def url(self):
+        self._get_info()
+        fqdn_listname = self._info['fqdn_listname']
+        return 'lists/{0}/config'.format(fqdn_listname)
+
     def __iter__(self):
         for key in self._info.keys():
             yield key
@@ -633,12 +638,12 @@ class SettingsAdaptor(BaseAdaptor):
     def keys(self):
         return self._info.keys()
 
-    def save(self):
-        data = {}
-        for attribute, value in self._info.items():
+    def save(self, data={}):
+        call_data = {}
+        for attribute, value in data.items():
             if attribute not in LIST_READ_ONLY_ATTRS:
-                data[attribute] = value
-        response, content = self._connection.call(self._url, data, 'PATCH')
+                call_data[attribute] = value
+        response, content = self._connection.call(self._url, call_data, 'PATCH')
 
 
 class MembershipAdaptor(BaseAdaptor):

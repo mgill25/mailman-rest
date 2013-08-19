@@ -142,6 +142,7 @@ class AcceptableAlias(BaseModel):
 
 
 class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperationParamMixin):
+    fqdn_listname = models.CharField(max_length=100, unique=True)
     last_post_at = models.DateTimeField(null=True, default=None)
     digest_last_sent_at = models.DateTimeField(null=True, default=None)
 
@@ -149,11 +150,11 @@ class ListParametersMixin(ListConfigParamMixin, ListPolicyParamMixin, ListOperat
         abstract = True
 
 
-class ListSettings(ListParametersMixin):
+class ListSettings(ListParametersMixin, AbstractRemotelyBackedObject):
     object_type = 'listsettings'
     lookup_field = 'fqdn_listname'
     adaptor = SettingsAdaptor
-    fields = []
+    fields = [(name, name) for name in ListParametersMixin._meta.get_all_field_names() if name != u'id']
 
     @property
     def acceptable_aliases(self):
@@ -177,6 +178,8 @@ class ListSettings(ListParametersMixin):
         setattr(self, key, val)
         self.save()
 
+    def __unicode__(self):
+        return self.fqdn_listname
 
 # Mailing List
 class AbstractBaseList(BaseModel):
@@ -342,11 +345,9 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
 
     def create_list(self, list_name, **kwargs):
         """Create a mailing list on this domain"""
-        # A list can't be created without a settings object
-        settings = ListSettings()
-        settings.save()
+        fqdn_listname = u'{0}@{1}'.format(list_name, self.mail_host)
         ml = MailingList(list_name=list_name, mail_host=self.mail_host,\
-                domain=self, settings=settings, **kwargs)
+                domain=self, fqdn_listname=fqdn_listname, **kwargs)
         ml.save()
         return ml
 

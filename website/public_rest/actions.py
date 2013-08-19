@@ -16,6 +16,10 @@ from public_rest.adaptors import *
 def on_MailingList_save(sender, **kwargs):
     kwargs['instance'].process_on_save_signal(sender, **kwargs)
 
+@receiver(post_save, sender=ListSettings)
+def on_ListSettings_save(sender, **kwargs):
+    kwargs['instance'].process_on_save_signal(sender, **kwargs)
+
 #@receiver(post_save, sender=User)
 #def on_User_save(sender, **kwargs):
 #    kwargs['instance'].process_on_save_signal(sender, **kwargs)

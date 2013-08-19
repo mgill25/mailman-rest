@@ -233,7 +233,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             if self.object_type == 'membership':
                 data['list_id'] = self.mlist.fqdn_listname
             if self.object_type == 'listsettings':
-                data['fqdn_listname'] = instance.mailinglist.fqdn_listname
+                data['fqdn_listname'] = self.fqdn_listname
             return data
 
         def get_object(instance, url=None):
@@ -246,7 +246,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
                     rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, object_type=self.object_type)
                 else:
                     field_key = instance.lookup_field
-                    kwds = { field_key : getattr(instance, field_key) }
+                    kwds = { field_key : getattr(instance, field_key, None) }
                     kwds.update(prepare_related_data(instance))
                     try:
                         rv_adaptor = ci.get_object(object_type=self.object_type, **kwds)
@@ -305,11 +305,13 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 # >> Depends on the object_type
             else:
                 if instance.object_type not in disallow_updates:
-                    ci.update_object(partial_url=instance.partial_URL, data=backing_data)
+                    ci.update_object(object_type=self.object_type,
+                            partial_url=instance.partial_URL, data=backing_data)
         else:
             # PATCH the fields in back.
             if instance.object_type not in disallow_updates:
                 print("partial_url: {0}".format(instance.partial_URL))
-                ci.update_object(partial_url=instance.partial_URL, data=backing_data)
+                ci.update_object(object_type=self.object_type,
+                        partial_url=instance.partial_URL, data=backing_data)
         super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
 
