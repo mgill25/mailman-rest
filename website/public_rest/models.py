@@ -207,29 +207,38 @@ class CoreListMixin(models.Model):
             help_text=_("Human readable name for the mailing list"))
 
     domain = models.ForeignKey('Domain')
-    settings = models.OneToOneField(ListSettings)
+    settings = models.OneToOneField(ListSettings, null=True)
 
     def save(self, *args, **kwargs):
         """Populate these settings for the current MailingList instance."""
         if self.pk is None:
+            # Save the list
+            super(CoreListMixin, self).save(*args, **kwargs)
+            # Make sure settings are present
+            if not self.settings:
+                self.settings = ListSettings(fqdn_listname=self.fqdn_listname)
+                self.settings.save()
+            # Populate
             if not self.settings.join_address:
                 self.settings.join_address = u'{0}-join@{1}'.format(self.list_name, self.mail_host)
             if not self.settings.bounces_address:
-                    self.settings.bounces_address = u'{0}-bounces@{1}'.format(self.list_name, self.mail_host)
+                self.settings.bounces_address = u'{0}-bounces@{1}'.format(self.list_name, self.mail_host)
             if not self.settings.leave_address:
-                    self.settings.leave_address = u'{0}-leave@{1}'.format(self.list_name, self.mail_host)
+                self.settings.leave_address = u'{0}-leave@{1}'.format(self.list_name, self.mail_host)
             if not self.settings.no_reply_address:
-                    self.settings.no_reply_address = u'noreply@{0}'.format(self.mail_host)
+                self.settings.no_reply_address = u'noreply@{0}'.format(self.mail_host)
             if not self.settings.owner_address:
-                    self.settings.owner_address = u'{0}-owner@{1}'.format(self.list_name, self.mail_host)
+                self.settings.owner_address = u'{0}-owner@{1}'.format(self.list_name, self.mail_host)
             if not self.fqdn_listname:
-                    self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
+                self.fqdn_listname = u'{0}@{1}'.format(self.list_name, self.mail_host)
             if not self.settings.request_address:
-                    self.settings.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
+                self.settings.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
             # Postorius is inconsistent in using these via settings or directly
+            print("Saving...fqdn_listname {0}".format(self.fqdn_listname))
+            self.settings.fqdn_listname = self.fqdn_listname
             self.settings.mail_host = self.mail_host
             self.settings.display_name = self.display_name
-            self.settings.save()    #XXX: If we need different args for settings and lists?
+            self.settings.save()
         super(CoreListMixin, self).save(*args, **kwargs)
 
 
