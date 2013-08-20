@@ -362,7 +362,7 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
     def __unicode__(self):
         return self.mail_host
 
-# AbstractRemotelyBackedObject
+
 class Email(BaseModel):
 
     object_type='email'

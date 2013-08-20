@@ -82,21 +82,35 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
         logger.info("Processing {0} Remote filter!".format(self.model.layer))
         logger.info("Kwargs: {0}".format(kwargs))
 
+        def sanitize_query_and_endpoint(object_type, endpoint, **kwargs):
+            """
+            Sanitize query parameters and endpoints for subsequent requests.
+
+            Some arguments come in as kwargs, but need to be propagated below
+            as endpoints.
+
+            `kwargs`: All the incoming query parameters.
+            `endpoint`: The API endpoint (which may be modified).
+            """
+            new_dict = {}
+            for key, val in kwargs.items():
+                if "__exact" in key:
+                    key = key.split("__")[0]
+                new_dict[key] = val
+            params = urlencode(new_dict)
+            return params, endpoint
+
         # Look at this layer, if empty, look to layers below.
         records = super(RemoteObjectQuerySet, self).filter(*args, **kwargs)
         if records and records.exists():
             return records
         else:
             logger.info("Pull records up from {layer} layer".format(layer=self.model.get_lower_layer()))
-            endpoint = self.model.object_type + 's'
-            lower_url = urljoin(settings.MAILMAN_API_URL, '/{endpoint}'.format(endpoint=endpoint))
-            # Sanitize query parameters for subsequent requests.
-            new_dict = {}
-            for key, val in kwargs.items():
-                if "__exact" in key:
-                    key = key.split("__")[0]
-                new_dict[key] = val
-            params = urlencode(new_dict)              # Turn all kwargs into Query parameters
+            endpoint = ci.get_api_endpoint(object_type=self.model.object_type)
+            params, endpoint = sanitize_query_and_endpoint(object_type=self.model.object_type,
+                                                           endpoint=endpoint, **kwargs)
+            lower_url = urljoin('{0}/3.0/'.format(settings.MAILMAN_API_URL),
+                                '{0}'.format(endpoint))
             if params:
                 url = urljoin(lower_url, '?{params}'.format(params=params))
             else:
