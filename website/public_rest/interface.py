@@ -145,7 +145,6 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                                 try:
                                     related_record = related_model.objects.get(partial_URL=partial_URL)
                                 except FieldError:
-                                    logger.error("Are you sure the related field is remotely backed up?")
                                     raise ValueError("Related field's partial_URL doesn't exist")
                                 except:
                                     logger.debug("+  Exception raised")
