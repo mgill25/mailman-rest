@@ -373,6 +373,7 @@ class Email(BaseModel):
     address = models.EmailField(unique=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
     verified = models.BooleanField(default=False)
+    preferences = models.OneToOneField('EmailPrefs', null=True)
 
     def save(self, *args, **kwargs):
         if self.pk is None:
@@ -380,6 +381,9 @@ class Email(BaseModel):
             if self.user and self.user.preferred_email is None:
                 self.user.preferred_email = self
                 self.user.save()
+            # preferences
+            self.preferences = EmailPrefs()
+            self.preferences.save()
         else:
             super(Email, self).save(*args, **kwargs)
 
@@ -426,6 +430,8 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     preferred_email = models.OneToOneField(Email, null=True,
                                            related_name='%(class)s_preferred')
+
+    preferences = models.OneToOneField('UserPrefs', null=True)
     #TODO peer_expiration_timestamp = models.DateTimeField(null=True)
 
     USERNAME_FIELD = 'display_name'
@@ -480,8 +486,8 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     def save(self, *args, **kwargs):
         if self.pk is None:
                 super(AbstractUser, self).save(*args, **kwargs)
-                self.prefs = UserPrefs(user=self)
-                self.prefs.save()
+                self.preferences = UserPrefs()
+                self.preferences.save()
         else:
             super(AbstractUser, self).save(*args, **kwargs)
 
@@ -506,6 +512,14 @@ class BasePrefs(BaseModel):
     receive_list_copy = models.NullBooleanField()
     receive_own_postings = models.NullBooleanField()
 
+    fields = [('acknowledge_posts', 'acknowledge_posts'),
+            ('delivery_status', 'delivery_status'),
+            ('delivery_mode', 'delivery_mode'),
+            ('hide_address', 'hide_address'),
+            ('preferred_language', 'preferred_language'),
+            ('receive_list_copy', 'receive_list_copy'),
+            ('receive_own_postings', 'receive_own_postings')]
+
     def __getitem__(self, key):
         return getattr(self, key)
 
@@ -515,7 +529,10 @@ class BasePrefs(BaseModel):
 
 
 class UserPrefs(BasePrefs):
-    user = models.OneToOneField(User)
+    pass
+
+class EmailPrefs(BasePrefs):
+    pass
 
 
 # Membership Preferences
@@ -586,6 +603,23 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
     @property
     def fqdn_listname(self):
         return self.mlist.fqdn_listname
+
+    def save(self, *args, **kwargs):
+        """Save a membership and its preferences."""
+        if self.pk is None:
+            super(Membership, self).save(*args, **kwargs)
+            if self.role == self.OWNER:
+                self.ownerprefs = OwnerPrefs()
+                self.ownerprefs.save()
+            elif self.role == self.MEMBER:
+                self.memberprefs = MemberPrefs()
+                self.memberprefs.save()
+            elif self.role == self.MODERATOR:
+                self.moderatorprefs = ModeratorPrefs()
+                self.moderatorprefs.save()
+        else:
+            super(Membership, self).save(*args, **kwargs)
+
 
     def __unicode__(self):
         return '{0} on {1}'.format(self.address, self.mlist.fqdn_listname)
