@@ -82,7 +82,7 @@ class Connection(object):
             headers['Authorization'] = 'Basic ' + self.basic_auth
         url = urljoin(self.base_url, path)
         try:
-            print('url: {0}, base_url: {1}, path: {2}'.format(url, self.base_url, path))
+            logger.debug('url: {0}, base_url: {1}, path: {2}'.format(url, self.base_url, path))
             response, content = Http().request(url, method, data, headers)
             # If we did not get a 2xx status code, make this look like a
             # urllib2 exception, for backward compatibility.
@@ -312,7 +312,7 @@ class CoreInterface(object):
                 rv['subscriber'] = data['address']
             if data.has_key('fqdn_listname'):
                 rv['fqdn_listname'] = data['fqdn_listname']
-            print("sanitized rv: {0}".format(rv))
+            logger.debug("sanitized rv: {0}".format(rv))
             return rv
         else:
             return data
@@ -326,7 +326,7 @@ class CoreInterface(object):
         # is represented by different objects Y and Z at the
         # Mailman Core API.
         #TODO: How to make sure unnecessary data is not posted?
-        print("data: {0}, kwargs: {1}".format(data, kwargs))
+        logger.debug("data: {0}, kwargs: {1}".format(data, kwargs))
         endpoint = self.get_api_endpoint(object_type, **kwargs)
         data = self.sanitize_post_data(data, object_type)
         response, content = self.connection.call(endpoint, data=data, method='POST')

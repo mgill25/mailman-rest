@@ -234,7 +234,6 @@ class CoreListMixin(models.Model):
             if not self.settings.request_address:
                 self.settings.request_address = u'{0}-request@{1}'.format(self.list_name, self.mail_host)
             # Postorius is inconsistent in using these via settings or directly
-            print("Saving...fqdn_listname {0}".format(self.fqdn_listname))
             self.settings.fqdn_listname = self.fqdn_listname
             self.settings.mail_host = self.mail_host
             self.settings.display_name = self.display_name

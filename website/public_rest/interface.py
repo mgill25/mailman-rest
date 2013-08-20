@@ -26,6 +26,9 @@ LayerBelow = { 'rest':'adaptor',
 'core': None
 }
 
+# Logging
+logger = logging.getLogger(__name__)
+
 # Abstract Object
 class AbstractObject(models.Model):
     class Meta:
@@ -49,7 +52,7 @@ class AbstractObject(models.Model):
 
     def process_on_save_signal(self, sender, **kwargs):
         instance = kwargs['instance']
-        print('{object_type}({instance}) has been saved in the {layer} layer'.format(layer=self.layer, object_type=self.object_type, instance=instance.pk))
+        logger.info('{object_type}({instance}) has been saved in the {layer} layer'.format(layer=self.layer, object_type=self.object_type, instance=instance.pk))
 
     def __unicode__(self):
         return '{0}\({1}\)'.format('Class', self.pk)
@@ -76,15 +79,15 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
     FILTER_IGNORE_FIELDS = ['url', ]
 
     def filter(self, *args, **kwargs):
-        print("Processing {0} Remote filter!".format(self.model.layer))
-        print("Kwargs: {0}".format(kwargs))
+        logger.info("Processing {0} Remote filter!".format(self.model.layer))
+        logger.info("Kwargs: {0}".format(kwargs))
 
         # Look at this layer, if empty, look to layers below.
         records = super(RemoteObjectQuerySet, self).filter(*args, **kwargs)
         if records and records.exists():
             return records
         else:
-            print("Pull records up from {layer} layer".format(layer=self.model.get_lower_layer()))
+            logger.info("Pull records up from {layer} layer".format(layer=self.model.get_lower_layer()))
             endpoint = self.model.object_type + 's'
             lower_url = urljoin(settings.MAILMAN_API_URL, '/{endpoint}'.format(endpoint=endpoint))
             # Sanitize query parameters for subsequent requests.
@@ -106,34 +109,34 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                 for record in adaptor_list:
                     m = self.model()
                     m.partial_URL = urlsplit(record.url).path
-                    #self.get_logger().debug("Saving {1}{0}".format(self.model.object_type, m.layer))
-                    #self.get_logger().debug(" {0}".format(record))
+                    #logger.debug("Saving {1}{0}".format(self.model.object_type, m.layer))
+                    #logger.debug(" {0}".format(record))
                     for field in record():
                         if not field in self.FILTER_IGNORE_FIELDS:
-                            self.get_logger().debug("   Field: {0}".format(field))
+                            logger.debug("   Field: {0}".format(field))
                             ###  When the field is a ForeignKey URL, we must convert it to the current layer
                             field_val = getattr(record, field)
                             try:
                                setattr(m, field, field_val)
                             except ValueError:
-                               #self.get_logger().debug("+  {0}: {1}".format(field, field_val))
+                               #logger.debug("+  {0}: {1}".format(field, field_val))
                                related_model = getattr(self.model, field).field.rel.to.objects.model
                                partial_URL = urlsplit(field_val).path
                                try:
                                    related_record = related_model.objects.get(partial_URL=partial_URL)
                                except:
-                                   self.get_logger().debug("+  Exception raised")
+                                   logger.debug("+  Exception raised")
                                    raise
 
                                #field_key = field_val.keyed_on
                                #kwds = { field_key : getattr(field_val, field_key) }
-                               #self.get_logger().debug("        Creating {0} from {1}".format(field, kwds))
-                               #self.get_logger().debug("        Converting {0}".format(getattr(self.model, field).field.rel.to.objects))
+                               #logger.debug("        Creating {0} from {1}".format(field, kwds))
+                               #logger.debug("        Converting {0}".format(getattr(self.model, field).field.rel.to.objects))
                                #related_record = getattr(self.model, field).field.rel.to.objects.get(**kwds)
                                #related_record.save()
                                setattr(m, field, related_record)
                                field_val = related_record
-                            self.get_logger().debug("   {0}: {1}".format(field, field_val))
+                            logger.debug("   {0}: {1}".format(field, field_val))
                     m.save()
                 return super(RemoteObjectQuerySet, self).filter(*args, **kwargs)
             else:
@@ -162,39 +165,39 @@ class AbstractLocallyBackedObject(AbstractObject):
     objects = LocalManager()
 
     def save(self, *args, **kwargs):
-        print("Inside AbstractLocallyBackedObject save()")
+        logger.info("Inside AbstractLocallyBackedObject save()")
         #Ensure that local object is always related to layer below
         lower_model = self.get_backing_model()
-        print("lower_model: {0}".format(lower_model))
+        logger.info("lower_model: {0}".format(lower_model))
         # Get the arguments associated with our model that might be available at back.
         filter_args = {self.lookup_field: getattr(self, self.lookup_field)}
-        print('Backing {object_type} with {filter}'.format(object_type=self.object_type, filter=filter_args))
+        logger.info('Backing {object_type} with {filter}'.format(object_type=self.object_type, filter=filter_args))
         backing_record = lower_model.objects.get_or_create(**filter_args)
         #self.layer_below = backing_record
-        #print('Saving {object_type}({pk}) in {layer} layer'.format(layer=self.layer, object_type=self.object_type, pk=self.pk))
+        #logger.info('Saving {object_type}({pk}) in {layer} layer'.format(layer=self.layer, object_type=self.object_type, pk=self.pk))
         super(AbstractLocallyBackedObject, self).save(*args, **kwargs)
 
     def process_on_save_signal(self, sender, **kwargs):
-        print("Inside AbstractLocallyBackedObject post_save()")
+        logger.info("Inside AbstractLocallyBackedObject post_save()")
         instance = kwargs['instance']
-        print('Post_save {object_type}'.format(object_type=self.object_type))
+        logger.info('Post_save {object_type}'.format(object_type=self.object_type))
         lookup_args = {self.lookup_field: getattr(self, self.lookup_field)}
-        print("lookup_args: {0}".format(lookup_args))
+        logger.info("lookup_args: {0}".format(lookup_args))
         backing_record = self.get_backing_model().objects.get(**lookup_args)
-        print('===Backup is to {object_type}({0})'.format(backing_record, object_type=backing_record.object_type))
+        logger.info('===Backup is to {object_type}({0})'.format(backing_record, object_type=backing_record.object_type))
         if backing_record:
             for local_field_name, remote_field_name in self.fields:
                 field_val = getattr(self, local_field_name)
                 if isinstance(field_val, AbstractObject):
-                   #self.get_logger().debug("+  {0}: {1}".format(local_field_name, field_val))
+                   #logger.debug("+  {0}: {1}".format(local_field_name, field_val))
                    ## Convert field_val to a model
-                   #self.get_logger().debug("        Converting to {0}".format(below_model))
+                   #logger.debug("        Converting to {0}".format(below_model))
                    field_key = self.lookup_field
                    kwds = { field_key : getattr(field_val, field_key) }
-                   #self.get_logger().debug("        Creating {0} from {1}".format(local_field_name, kwds))
+                   #logger.debug("        Creating {0} from {1}".format(local_field_name, kwds))
                    related_record = below_model.objects.get(**kwds)
                    field_val = related_record
-                print("   {0}: {1}".format(local_field_name, field_val))
+                logger.info("   {0}: {1}".format(local_field_name, field_val))
                 setattr(backing_record, local_field_name, field_val)
             backing_record.save()
         super(AbstractLocallyBackedObject, self).process_on_save_signal(sender, **kwargs)
@@ -224,7 +227,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
         After saving the object locally, we sync the
         changes to the remotely backed layer as well.
         """
-        print("Inside AbstractRemotelyBackedObject!")
+        logger.info("Inside AbstractRemotelyBackedObject!")
 
         def prepare_related_data(instance):
             """Prepare data that would be used for looking
@@ -238,7 +241,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
 
         def get_object(instance, url=None):
             """Returns the ObjectAdaptor. """
-            print("Getting object...")
+            logger.debug("Getting object...")
             if url is None:
                 object_model = instance.__class__
                 if instance.partial_URL:
@@ -255,11 +258,10 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 return rv_adaptor
 
         def get_or_create_object(instance, data=None):
-            print("Creating object...")
+            logger.debug("Creating object...")
             object_model = instance.__class__
             res = get_object(instance)
             if not res:
-                print("Nope!!!")
                 # Push the object on the backer via the REST API.
                 kwds = prepare_related_data(instance)
                 rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **kwds)
@@ -285,7 +287,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
 
         # Handle post_save
         instance = kwargs['instance']
-        print('Post_save {object_type} in {layer} layer'.format(layer=self.layer, object_type=self.object_type))
+        logger.info('Post_save {object_type} in {layer} layer'.format(layer=self.layer, object_type=self.object_type))
 
         backing_data = prepare_backing_data(instance)
 
@@ -294,10 +296,10 @@ class AbstractRemotelyBackedObject(AbstractObject):
         disallow_updates = ['domain', 'mailinglist', 'membership']   # You can PATCH `deliver_mode` on membership preferences.
 
         if kwargs.get('created'):
-            print("data: ", backing_data)
+            logger.debug("data: {0}".format(backing_data))
             res = get_or_create_object(instance, data=backing_data)
             if res:
-                print("result: ", res, type(res))
+                logger.debug("result: {0}, {1}".format(res, type(res)))
                 # Create a peer thing and associate the url with it.
                 instance.partial_URL = urlsplit(res.url).path
                 instance.save()
@@ -310,7 +312,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
         else:
             # PATCH the fields in back.
             if instance.object_type not in disallow_updates:
-                print("partial_url: {0}".format(instance.partial_URL))
+                logger.debug("partial_url: {0}".format(instance.partial_URL))
                 ci.update_object(object_type=self.object_type,
                         partial_url=instance.partial_URL, data=backing_data)
         super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
