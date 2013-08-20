@@ -312,6 +312,8 @@ class CoreInterface(object):
                 rv['subscriber'] = data['address']
             if data.has_key('fqdn_listname'):
                 rv['fqdn_listname'] = data['fqdn_listname']
+            if data.has_key('role'):
+                rv['role'] = data['role']
             logger.debug("sanitized rv: {0}".format(rv))
             return rv
         else:
