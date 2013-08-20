@@ -306,8 +306,8 @@ class CoreInterface(object):
         if object_type == 'mailinglist' or object_type == 'listsettings' or \
                 object_type == 'membership':
             rv = {}
-            if data.has_key('mlist'):
-                rv['list_id'] = urlsplit(data['mlist']).path.split('lists/')[1]
+            if data.has_key('list_id'):
+                rv['list_id'] = urlsplit(data['list_id']).path.split('lists/')[1]
             if data.has_key('address'):
                 rv['subscriber'] = data['address']
             if data.has_key('fqdn_listname'):
