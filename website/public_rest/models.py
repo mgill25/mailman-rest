@@ -562,7 +562,12 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
     object_type = 'membership'
     adaptor = MembershipAdaptor
     lookup_field = 'address'              #TODO: This has to be unique, but for memberships, email isn't.
-    fields = [('user', 'user'), ('mlist', 'mlist'), ('address', 'address')]
+
+    fields = [ ('user', 'user'),
+               ('mlist', 'list_id'),
+               ('address', 'address'),
+               ('role', 'role'),
+            ]
 
     OWNER = 'owner'
     MODERATOR = 'moderator'

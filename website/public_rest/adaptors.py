@@ -196,7 +196,7 @@ class UserAdaptor(BaseAdaptor):
         self._cleartext_password = None
 
     def __repr__(self):
-        return '<User "{0}" ({1})>'.format(
+        return '<UserAdaptor "{0}" ({1})>'.format(
             self.display_name, self.user_id)
 
     def _get_info(self):
@@ -651,6 +651,8 @@ class MembershipAdaptor(BaseAdaptor):
     A Membership is represented as Members, Moderators or Owners
     in the Core's Roster.
     """
+    iter_fields = ['list_id', 'partial_url', 'role', 'user', 'preferences']
+
     def __init__(self, connection, url):
         self._connection = connection
         self._url = url

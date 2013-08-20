@@ -123,33 +123,42 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                 for record in adaptor_list:
                     m = self.model()
                     m.partial_URL = urlsplit(record.url).path
-                    #logger.debug("Saving {1}{0}".format(self.model.object_type, m.layer))
-                    #logger.debug(" {0}".format(record))
-                    for field in record():
+                    logger.debug("Saving {0} at {1}".format(self.model.object_type, m.layer))
+                    logger.debug(" {0}".format(record))
+                    for field in record:
                         if not field in self.FILTER_IGNORE_FIELDS:
-                            logger.debug("   Field: {0}".format(field))
                             ###  When the field is a ForeignKey URL, we must convert it to the current layer
                             field_val = getattr(record, field)
+                            logger.debug("   Field: {0}: {1}".format(field, field_val))
                             try:
-                               setattr(m, field, field_val)
+                                setattr(m, field, field_val)
                             except ValueError:
-                               #logger.debug("+  {0}: {1}".format(field, field_val))
-                               related_model = getattr(self.model, field).field.rel.to.objects.model
-                               partial_URL = urlsplit(field_val).path
-                               try:
-                                   related_record = related_model.objects.get(partial_URL=partial_URL)
-                               except:
-                                   logger.debug("+  Exception raised")
-                                   raise
+                                logger.info("ValueError, probably a Related Model Adaptor!")
+                                logger.debug("+  {0}: {1}".format(field, field_val))
+                                related_model = getattr(self.model, field).field.rel.to.objects.model
 
-                               #field_key = field_val.keyed_on
-                               #kwds = { field_key : getattr(field_val, field_key) }
-                               #logger.debug("        Creating {0} from {1}".format(field, kwds))
-                               #logger.debug("        Converting {0}".format(getattr(self.model, field).field.rel.to.objects))
-                               #related_record = getattr(self.model, field).field.rel.to.objects.get(**kwds)
-                               #related_record.save()
-                               setattr(m, field, related_record)
-                               field_val = related_record
+                                try:
+                                    partial_URL = urlsplit(field_val).path
+                                except AttributeError:
+                                    partial_URL = field_val.self_link
+
+                                try:
+                                    related_record = related_model.objects.get(partial_URL=partial_URL)
+                                except FieldError:
+                                    logger.error("Are you sure the related field is remotely backed up?")
+                                    raise ValueError("Related field's partial_URL doesn't exist")
+                                except:
+                                    logger.debug("+  Exception raised")
+                                    raise
+
+                                #field_key = field_val.keyed_on
+                                #kwds = { field_key : getattr(field_val, field_key) }
+                                logger.debug("        Creating {0} from {1}".format(field, kwds))
+                                logger.debug("        Converting {0}".format(getattr(self.model, field).field.rel.to.objects))
+                                #related_record = getattr(self.model, field).field.rel.to.objects.get(**kwds)
+                                #related_record.save()
+                                setattr(m, field, related_record)
+                                field_val = related_record
                             logger.debug("   {0}: {1}".format(field, field_val))
                     m.save()
                 return super(RemoteObjectQuerySet, self).filter(*args, **kwargs)

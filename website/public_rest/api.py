@@ -267,7 +267,6 @@ class CoreInterface(object):
         response, content = self.connection.call(urlsplit(url).path)
         if 'entries' not in content:
             return []
-
         if object_type == 'domain':
             sort_key = itemgetter('url_host')
         elif object_type == 'user':
