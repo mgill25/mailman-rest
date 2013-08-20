@@ -298,19 +298,24 @@ class CoreInterface(object):
             endpoint = object_type + 's'
         return endpoint
 
-    def sanitize_post_data(self, data):
+    def sanitize_post_data(self, data, object_type):
         """
         Sanitize data before making API calls.
+        This also depends on the object type, since
+        some of them don't really require any.
         """
-        rv = {}
-        if data.has_key('mlist'):
-            rv['list_id'] = urlsplit(data['mlist']).path.split('lists/')[1]
-        if data.has_key('address'):
-            rv['subscriber'] = data['address']
-        if data.has_key('fqdn_listname'):
-            rv['fqdn_listname'] = data['fqdn_listname']
-        print("sanitized rv: {0}".format(rv))
-        return rv
+        if object_type == 'mailinglist' or object_type == 'listsettings':
+            rv = {}
+            if data.has_key('mlist'):
+                rv['list_id'] = urlsplit(data['mlist']).path.split('lists/')[1]
+            if data.has_key('address'):
+                rv['subscriber'] = data['address']
+            if data.has_key('fqdn_listname'):
+                rv['fqdn_listname'] = data['fqdn_listname']
+            print("sanitized rv: {0}".format(rv))
+            return rv
+        else:
+            return data
 
     def create_object(self, object_type=None, data=None, **kwargs):
         """
@@ -323,7 +328,7 @@ class CoreInterface(object):
         #TODO: How to make sure unnecessary data is not posted?
         print("data: {0}, kwargs: {1}".format(data, kwargs))
         endpoint = self.get_api_endpoint(object_type, **kwargs)
-        data = self.sanitize_post_data(data)
+        data = self.sanitize_post_data(data, object_type)
         response, content = self.connection.call(endpoint, data=data, method='POST')
         partial_url = urlsplit(response['location']).path
         model = self.get_model_from_object(object_type)
@@ -339,4 +344,4 @@ class CoreInterface(object):
             adaptor.save(data=data)
         else:
             response, content = self.connection.call(partial_url, data=data, method='PATCH')
-        return adaptor(self.connection, partial_url)
+        return adaptor
