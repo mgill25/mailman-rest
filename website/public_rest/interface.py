@@ -18,6 +18,7 @@ from django.db.models.query import QuerySet, EmptyQuerySet
 from model_utils.managers import PassThroughManager
 
 from public_rest.api import CoreInterface, Connection
+from public_rest.utils import get_related_attribute
 
 ci = CoreInterface()
 
@@ -145,6 +146,7 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                                 try:
                                     related_record = related_model.objects.get(partial_URL=partial_URL)
                                 except FieldError:
+                                    # Related field is probably not remotely backed.
                                     raise ValueError("Related field's partial_URL doesn't exist")
                                 except:
                                     logger.debug("+  Exception raised")
@@ -209,7 +211,7 @@ class AbstractLocallyBackedObject(AbstractObject):
         logger.info('===Backup is to {object_type}({0})'.format(backing_record, object_type=backing_record.object_type))
         if backing_record:
             for local_field_name, remote_field_name in self.fields:
-                field_val = getattr(self, local_field_name)
+                field_val = get_related_attribute(self, local_field_name)
                 if isinstance(field_val, AbstractObject):
                    #logger.debug("+  {0}: {1}".format(local_field_name, field_val))
                    ## Convert field_val to a model
