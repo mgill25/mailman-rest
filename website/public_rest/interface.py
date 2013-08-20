@@ -298,7 +298,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             # Local fields could have different name at remote
             backing_data = {}
             for local_field_name, remote_field_name in instance.fields:
-                field_val = getattr(instance, local_field_name)
+                field_val = get_related_attribute(instance, local_field_name)
                 if isinstance(field_val, AbstractRemotelyBackedObject):
                     if field_val.partial_URL:
                         related_url = urljoin(settings.API_BASE_URL, field_val.partial_URL)

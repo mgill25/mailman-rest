@@ -30,7 +30,7 @@ def get_related_attribute(instance, attr_string):
     For the Django model Membership, which has a ForeignKey to
     the User model, it goes something like this:
         >>> mem = Membership.objects.all()[0]
-        >>> get_related_attributes(mem, 'user.display_name')
+        >>> get_related_attribute(mem, 'user.display_name')
         u'Tony Stark'
     """
     attr_string_list = attr_string.split('.')
