@@ -304,7 +304,8 @@ class CoreInterface(object):
         This also depends on the object type, since
         some of them don't really require any.
         """
-        if object_type == 'mailinglist' or object_type == 'listsettings':
+        if object_type == 'mailinglist' or object_type == 'listsettings' or \
+                object_type == 'membership':
             rv = {}
             if data.has_key('mlist'):
                 rv['list_id'] = urlsplit(data['mlist']).path.split('lists/')[1]
