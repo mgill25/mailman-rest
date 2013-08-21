@@ -547,6 +547,9 @@ class MembershipPrefs(BasePrefs):
     adaptor = PreferencesAdaptor
     lookup_field = 'address'
 
+    def __unicode__(self):
+        return self.membership.address
+
 
 class Membership(BaseModel, AbstractRemotelyBackedObject):
     """A Membership is created when a User subscribes to a MailingList"""

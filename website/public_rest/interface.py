@@ -263,6 +263,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 data['fqdn_listname'] = self.fqdn_listname
             if self.object_type == 'preferences':
                 data['address'] = self.membership.address
+                data['list_id'] = self.membership.fqdn_listname
             return data
 
         def get_object(instance, url=None):
@@ -284,11 +285,11 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 return rv_adaptor
 
         def get_or_create_object(instance, data=None):
-            logger.debug("Creating object...")
             object_model = instance.__class__
             res = get_object(instance)
             if not res:
                 # Push the object on the backer via the REST API.
+                logger.debug("Creating object...")
                 kwds = prepare_related_data(instance)
                 rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **kwds)
                 return rv_adaptor

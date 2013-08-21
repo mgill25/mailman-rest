@@ -193,7 +193,8 @@ class CoreInterface(object):
             response, content = self.connection.call(
                     'members/find', data={'subscriber': address, 'list_id': list_id})
             if content['total_size'] == 1:
-                return MembershipAdaptor(self.connection, entry['self_link'])
+                for entry in content['entries']:
+                    return MembershipAdaptor(self.connection, entry['self_link'])
 
     def get_memberships_by_address(self, address):
         """
@@ -239,12 +240,11 @@ class CoreInterface(object):
             return members + mods + owners
 
 
-    def get_preferences(self, address):
+    def get_preferences(self, address, list_id):
         if address is not None:
-            response, content = self.connection.call(
-                    'members/{0}/preferences'.format(address))
-            return [PreferencesAdaptor(self.connection, entry['self_link'])
-                        for entry in content['entries']]
+            membership = self.get_membership(address, list_id)
+            if membership:
+                return membership.preferences
 
     # Some generic functions
     def get_model_from_object(self, object_type):
