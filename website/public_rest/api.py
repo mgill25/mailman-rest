@@ -189,6 +189,8 @@ class CoreInterface(object):
 
     def get_membership(self, address, list_id):
         """Return a given membership subscription on a list."""
+        #XXX: Why does having '@' symbol in list name not work?
+        list_id = list_id.replace('@', '.')
         if address is not None:
             response, content = self.connection.call(
                     'members/find', data={'subscriber': address, 'list_id': list_id})
@@ -263,6 +265,7 @@ class CoreInterface(object):
             return self.get_object_from_url(partial_url=partial_url, object_type=object_type)
         elif kwargs and object_type and not partial_url:
             logger.debug("get_object kwargs: {0}".format(kwargs))
+            logger.debug("Getting object_type: {0}".format(object_type))
             imethod = getattr(self, 'get_' + object_type)
             rv = imethod(**kwargs)
             return rv
@@ -302,6 +305,12 @@ class CoreInterface(object):
             endpoint = 'members'
         elif object_type == 'domain':
             endpoint = 'domains'
+        elif object_type == 'preferences':
+            model = self.get_model_from_object('membership')
+            instance = model.objects.get(address=kwargs['address'],
+                                                mlist__fqdn_listname=kwargs['list_id'])
+            partial_url = instance.partial_URL
+            endpoint = '{0}/preferences'.format(partial_url)
         return endpoint
 
     def sanitize_post_data(self, data, object_type):

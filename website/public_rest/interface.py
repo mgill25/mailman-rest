@@ -289,6 +289,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             res = get_object(instance)
             if not res:
                 # Push the object on the backer via the REST API.
+                logger.debug("GET failed!")
                 logger.debug("Creating object...")
                 kwds = prepare_related_data(instance)
                 rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **kwds)
@@ -320,7 +321,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
 
         # handle object get/create
         # TODO: Properly handle disallowed methods for objects
-        disallow_updates = ['domain', 'mailinglist', 'membership']   # You can PATCH `deliver_mode` on membership preferences.
+        disallow_updates = ['domain', 'mailinglist', 'membership',
+                            'preferences']   # You can PATCH `deliver_mode` on membership preferences.
 
         if kwargs.get('created'):
             logger.debug("data: {0}".format(backing_data))

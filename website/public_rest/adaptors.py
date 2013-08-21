@@ -309,6 +309,11 @@ class PreferencesAdaptor(BaseAdaptor):
         self.delivery_mode = None
         self._get_preferences()
 
+    @property
+    def url(self):
+        self._get_preferences()
+        return self._preferences['self_link']
+
     def __repr__(self):
         return repr(self._preferences)
 
