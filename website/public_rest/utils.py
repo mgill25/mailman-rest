@@ -35,9 +35,9 @@ def get_related_attribute(instance, attr_string):
     """
     attr_string_list = attr_string.split('.')
     primary_attr = attr_string_list[0]
-    attribute = getattr(instance, primary_attr)
+    attribute = getattr(instance, primary_attr, None)
     if len(attr_string_list) > 1:
         for sub_strings in attr_string_list[1:]:
-            attribute = getattr(attribute, sub_strings)
+            attribute = getattr(attribute, sub_strings, None)
     return attribute
 

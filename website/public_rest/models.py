@@ -500,7 +500,8 @@ class User(AbstractUser):
     adaptor = UserAdaptor
 
 
-class BasePrefs(BaseModel):
+class BasePrefs(BaseModel, AbstractRemotelyBackedObject):
+
     class Meta:
         abstract = True
 
@@ -529,33 +530,24 @@ class BasePrefs(BaseModel):
 
 
 class UserPrefs(BasePrefs):
-    pass
+    object_type = 'userprefs'
+    adaptor = PreferencesAdaptor
 
 class EmailPrefs(BasePrefs):
     pass
 
 
 # Membership Preferences
-class BaseMembershipPrefs(BasePrefs):
+class MembershipPrefs(BasePrefs):
     """
     Besides being associated with their own Owner/Moderator/Member,
     each preference object is also associated with Membership.
     """
-    membership = models.OneToOneField('Membership')
-    class Meta:
-        abstract = True
+    object_type = 'preferences'
+    adaptor = PreferencesAdaptor
+    lookup_field = 'address'
 
 
-class OwnerPrefs(BaseMembershipPrefs):
-    pass
-
-class ModeratorPrefs(BaseMembershipPrefs):
-    pass
-
-class MemberPrefs(BaseMembershipPrefs):
-    pass
-
-# Membership and related models
 class Membership(BaseModel, AbstractRemotelyBackedObject):
     """A Membership is created when a User subscribes to a MailingList"""
 
@@ -580,6 +572,7 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     mlist = models.ForeignKey(MailingList, null=True)
     address = models.EmailField()         #TODO: This should be associated with Email, but that's too many relations atm. *Sigh*
+    preferences = models.OneToOneField(MembershipPrefs, null=True)
 
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=MEMBER)
 
@@ -597,15 +590,6 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
         self.delete()
 
     @property
-    def preferences(self):
-        if self.role == self.OWNER:
-            return self.ownerprefs
-        elif self.role == self.MODERATOR:
-            return self.moderatorprefs
-        elif self.role == self.MEMBER:
-            return self.memberprefs
-
-    @property
     def fqdn_listname(self):
         return self.mlist.fqdn_listname
 
@@ -613,18 +597,11 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
         """Save a membership and its preferences."""
         if self.pk is None:
             super(Membership, self).save(*args, **kwargs)
-            if self.role == self.OWNER:
-                self.ownerprefs = OwnerPrefs()
-                self.ownerprefs.save()
-            elif self.role == self.MEMBER:
-                self.memberprefs = MemberPrefs()
-                self.memberprefs.save()
-            elif self.role == self.MODERATOR:
-                self.moderatorprefs = ModeratorPrefs()
-                self.moderatorprefs.save()
+            self.preferences = MembershipPrefs()
+            self.preferences.save()
+            super(Membership, self).save(*args, **kwargs)
         else:
             super(Membership, self).save(*args, **kwargs)
-
 
     def __unicode__(self):
         return '{0} on {1}'.format(self.address, self.mlist.fqdn_listname)

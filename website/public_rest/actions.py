@@ -36,3 +36,7 @@ def on_Domain_save(sender, **kwargs):
 def on_Membership_save(sender, **kwargs):
     kwargs['instance'].process_on_save_signal(sender, **kwargs)
 
+@receiver(post_save, sender=MembershipPrefs)
+def on_MembershipPrefs_save(sender, **kwargs):
+    kwargs['instance'].process_on_save_signal(sender, **kwargs)
+

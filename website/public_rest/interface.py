@@ -261,6 +261,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 data['list_id'] = self.mlist.fqdn_listname
             if self.object_type == 'listsettings':
                 data['fqdn_listname'] = self.fqdn_listname
+            if self.object_type == 'preferences':
+                data['address'] = self.membership.address
             return data
 
         def get_object(instance, url=None):

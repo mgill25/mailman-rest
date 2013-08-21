@@ -236,9 +236,15 @@ class CoreInterface(object):
                         for entry in owner_content['entries']]
             else:
                 owners = []
-
             return members + mods + owners
 
+
+    def get_preferences(self, address):
+        if address is not None:
+            response, content = self.connection.call(
+                    'members/{0}/preferences'.format(address))
+            return [PreferencesAdaptor(self.connection, entry['self_link'])
+                        for entry in content['entries']]
 
     # Some generic functions
     def get_model_from_object(self, object_type):
@@ -256,6 +262,7 @@ class CoreInterface(object):
         if partial_url and object_type:
             return self.get_object_from_url(partial_url=partial_url, object_type=object_type)
         elif kwargs and object_type and not partial_url:
+            logger.debug("get_object kwargs: {0}".format(kwargs))
             imethod = getattr(self, 'get_' + object_type)
             rv = imethod(**kwargs)
             return rv
@@ -293,8 +300,8 @@ class CoreInterface(object):
             endpoint = 'lists'
         elif object_type == 'membership':
             endpoint = 'members'
-        else:
-            endpoint = object_type + 's'
+        elif object_type == 'domain':
+            endpoint = 'domains'
         return endpoint
 
     def sanitize_post_data(self, data, object_type):
