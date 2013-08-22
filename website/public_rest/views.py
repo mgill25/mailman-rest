@@ -24,7 +24,7 @@ class UserViewSet(BaseModelViewSet):
     serializer_class = UserSerializer
 
     def get_queryset(self):
-        queryset = User.objects.all()
+        queryset = self.queryset
         display_name = self.request.QUERY_PARAMS.get('display_name', None)
         email = self.request.QUERY_PARAMS.get('email', None)
         # now filter out query params
@@ -41,7 +41,7 @@ class EmailViewSet(BaseModelViewSet):
     filter_fields = ('user', 'address', 'verified',)
 
     def get_queryset(self):
-        queryset = Email.objects.all()
+        queryset = self.queryset
         address = self.request.QUERY_PARAMS.get('address', None)
         user = self.request.QUERY_PARAMS.get('user', None)
         verified = self.request.QUERY_PARAMS.get('verified', None)
