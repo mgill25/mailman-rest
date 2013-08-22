@@ -122,7 +122,7 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                 url = lower_url
             adaptor_list = ci.get_all_from_url(url, object_type=self.model.object_type)
             if len(adaptor_list) == 0:
-                return EmptyQuerySet()
+                return EmptyQuerySet(model=self.model)
             elif len(adaptor_list) > 0:
                 # Create the image records and save them on this level
                 for record in adaptor_list:
@@ -168,7 +168,8 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                     m.save()
                 return super(RemoteObjectQuerySet, self).filter(*args, **kwargs)
             else:
-                return EmptyQuerySet()
+                return EmptyQuerySet(model=self.model)
+
 
 
 #  Managers
