@@ -21,9 +21,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = User.objects.all()
-
         logger.debug("QUERY_PARAMS: {0}".format(self.request.QUERY_PARAMS))
-
         display_name = self.request.QUERY_PARAMS.get('display_name', None)
         email = self.request.QUERY_PARAMS.get('email', None)
         # now filter out query params
@@ -34,7 +32,6 @@ class UserViewSet(viewsets.ModelViewSet):
             verified = self.request.QUERY_PARAMS.get('verified', None)
             if verified is not None:
                 queryset = queryset.filter(email__verified=verified)
-
         return queryset
 
 
@@ -42,8 +39,17 @@ class EmailViewSet(viewsets.ModelViewSet):
     queryset = Email.objects.all()
     serializer_class = EmailSerializer
     filter_fields = ('user', 'address', 'verified',)
-    #filter_backends = (SearchFilter, )
-    #search_fields = ('user__display_name', )
+
+    def get_queryset(self):
+        queryset = Email.objects.all()
+        logger.debug("QUERY_PARAMS: {0}".format(self.request.QUERY_PARAMS))
+        address = self.request.QUERY_PARAMS.get('address', None)
+        user = self.request.QUERY_PARAMS.get('user', None)
+        if address is not None:
+            queryset = queryset.filter(address=address)
+        if user is not None:
+            queryset = queryset.filter(user__display_name=user)
+        return queryset
 
 
 class MembershipViewSet(viewsets.ModelViewSet):
