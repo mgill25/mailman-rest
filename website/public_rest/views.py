@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class BaseModelViewSet(viewsets.ModelViewSet):
     def str2bool(self, s):
-        return s.lower() in ['True']
+        return s.lower() in ['true']
 
 class UserViewSet(BaseModelViewSet):
     """
