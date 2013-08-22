@@ -3,11 +3,13 @@ from public_rest.models import MailingList, Membership, User, Domain, Email
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
+    emails = serializers.RelatedField(many=True)
 
     class Meta:
         model = User
-        fields = ('url', 'display_name', 'email_set',
-                'is_superuser', 'membership_set', 'preferred_email')
+        fields = ('url', 'display_name', 'emails',
+                'is_superuser', #'membership_set',
+                'preferred_email')
 
 
 class MembershipSerializer(serializers.HyperlinkedModelSerializer):
@@ -44,6 +46,7 @@ class DomainSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('base_url', 'mail_host', 'contact_address', 'description')
 
 class EmailSerializer(serializers.HyperlinkedModelSerializer):
+    user = serializers.RelatedField()
 
     class Meta:
         model = Email

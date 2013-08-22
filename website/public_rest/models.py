@@ -375,6 +375,10 @@ class Email(BaseModel):
     verified = models.BooleanField(default=False)
     preferences = models.OneToOneField('EmailPrefs', null=True)
 
+    @property
+    def display_name(self):
+        return self.user.display_name
+
     def save(self, *args, **kwargs):
         if self.pk is None:
             super(Email, self).save(*args, **kwargs)

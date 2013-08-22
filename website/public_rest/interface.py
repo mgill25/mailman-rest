@@ -13,6 +13,7 @@ from urllib import urlencode
 from urllib2 import HTTPError
 
 from django.conf import settings
+from django.core.exceptions import FieldError
 from django.db import models
 from django.db.models.query import QuerySet, EmptyQuerySet
 from model_utils.managers import PassThroughManager
@@ -103,8 +104,11 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
 
         # Look at this layer, if empty, look to layers below.
         records = super(RemoteObjectQuerySet, self).filter(*args, **kwargs)
+        logger.debug("Records : {0}".format(records))
         if records and records.exists():
             return records
+        #XXX: filter returns immediately, but DRF makes another call where the condition
+        #is false, even when it was true before.
         else:
             logger.info("Pull records up from {layer} layer".format(layer=self.model.get_lower_layer()))
             endpoint = ci.get_api_endpoint(object_type=self.model.object_type)
