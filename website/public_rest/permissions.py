@@ -40,17 +40,17 @@ class IsValidModeratorPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return has_valid_memberships(user, 'moderator')
+        return self.has_valid_memberships(user, 'moderator')
 
 class IsValidOwnerPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return has_valid_memberships(user, 'owner')
+        return self.has_valid_memberships(user, 'owner')
 
 class IsValidMemberPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return has_valid_memberships(user, 'member')
+        return self.has_valid_memberships(user, 'member')
 
