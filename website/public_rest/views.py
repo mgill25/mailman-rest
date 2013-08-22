@@ -7,7 +7,8 @@ from rest_framework.filters import SearchFilter
 from .serializers import UserSerializer, MembershipSerializer, \
         MailingListSerializer, DomainSerializer, EmailSerializer
 
-from .models import User, Membership, MailingList, Domain, Email
+from public_rest.models import User, Membership, MailingList, Domain, Email
+from public_rest.permissions import *
 
 #logging
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class UserViewSet(BaseModelViewSet):
     serializer_class = UserSerializer
 
     def get_queryset(self):
+        perms = self.check_object_permissions(request, User)
         queryset = self.queryset
         display_name = self.request.QUERY_PARAMS.get('display_name', None)
         email = self.request.QUERY_PARAMS.get('email', None)
@@ -39,6 +41,7 @@ class EmailViewSet(BaseModelViewSet):
     queryset = Email.objects.all()
     serializer_class = EmailSerializer
     filter_fields = ('user', 'address', 'verified',)
+    permission_classes = [IsValidOwnerPermission, IsValidModeratorPermission]
 
     def get_queryset(self):
         queryset = self.queryset
