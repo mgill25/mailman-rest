@@ -399,7 +399,7 @@ class UserManager(BaseUserManager):
         if not password:
             raise ValueError("No Password Provided!")
         user = self.model(display_name=display_name)
-        user.create_preferred_email(address=email)     # let the first email be the preferred one
+        user.create_preferred_email(address=email)
         user.set_password(password)
         return user
 
@@ -442,17 +442,9 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
 
     def create_preferred_email(self, address):
         email, created = Email.objects.get_or_create(address=address, user=self)
-        self.email_set.add(email)       #XXX: Not working...
         self.preferred_email = email
         self.save()
-
-    def remove_preferred_email(self):
-        """
-        Remove an Email as the "preferred" email but don't
-        delete it. It will still be available in the user's
-        email_set.
-        """
-        self.preferred_email = None
+        self.email_set.add(email)
         self.save()
 
     @property
