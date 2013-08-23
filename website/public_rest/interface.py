@@ -273,6 +273,21 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 data['email'] = self.preferred_email.address
             return data
 
+        def prepare_backing_data(instance):
+            """Prepare data for backing layer"""
+            # Local fields could have different name at remote
+            backing_data = {}
+            for local_field_name, remote_field_name in instance.fields:
+                field_val = get_related_attribute(instance, local_field_name)
+                if isinstance(field_val, AbstractRemotelyBackedObject):
+                    if field_val.partial_URL:
+                        related_url = urljoin(settings.API_BASE_URL, field_val.partial_URL)
+                    else:
+                        raise Exception('Related Object not Available')
+                    field_val = related_url
+                backing_data[remote_field_name] = field_val
+            return backing_data
+
         def get_object(instance, url=None):
             """Returns the ObjectAdaptor. """
             logger.debug("Getting object...")
@@ -306,22 +321,6 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 return rv_adaptor
             else:
                 return res
-
-        def prepare_backing_data(instance):
-            """Prepare data for backing layer"""
-            # Local fields could have different name at remote
-            backing_data = {}
-            for local_field_name, remote_field_name in instance.fields:
-                field_val = get_related_attribute(instance, local_field_name)
-                if isinstance(field_val, AbstractRemotelyBackedObject):
-                    if field_val.partial_URL:
-                        related_url = urljoin(settings.API_BASE_URL, field_val.partial_URL)
-                    else:
-                        raise Exception('Related Object not Available')
-                    field_val = related_url
-                backing_data[remote_field_name] = field_val
-            return backing_data
-
 
         # Handle post_save
         instance = kwargs['instance']
