@@ -124,10 +124,11 @@ class CoreInterface(object):
                 for entry in sorted(content['entries'],
                                     key=itemgetter('self_link'))]
 
-    def get_user(self, address):
-        response, content = self.connection.call(
-            'users/{0}'.format(address))
-        return UserAdaptor(self.connection, content['self_link'])
+    def get_user(self, email=None):
+        if email is not None:
+            response, content = self.connection.call(
+                'users/{0}'.format(email))
+            return UserAdaptor(self.connection, content['self_link'])
 
     def create_user(self, email, password, display_name=''):
         response, content = self.connection.call(
@@ -311,6 +312,8 @@ class CoreInterface(object):
                                                 mlist__fqdn_listname=kwargs['list_id'])
             partial_url = instance.partial_URL
             endpoint = '{0}/preferences'.format(partial_url)
+        elif object_type == 'user':
+            endpoint = 'users'
         return endpoint
 
     def sanitize_post_data(self, data, object_type):

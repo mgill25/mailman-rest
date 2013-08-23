@@ -141,7 +141,7 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                                 logger.info("ValueError, probably a Related Model Adaptor!")
                                 logger.debug("+  {0}: {1}".format(field, field_val))
                                 related_model = getattr(self.model, field).field.rel.to.objects.model
-
+                                logger.info("====Related Model: {0}====".format(related_model))
                                 try:
                                     partial_URL = urlsplit(field_val).path
                                 except AttributeError:
@@ -269,6 +269,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
             if self.object_type == 'preferences':
                 data['address'] = self.membership.address
                 data['list_id'] = self.membership.fqdn_listname
+            if self.object_type == 'user':
+                data['email'] = self.preferred_email.address
             return data
 
         def get_object(instance, url=None):
@@ -280,8 +282,11 @@ class AbstractRemotelyBackedObject(AbstractObject):
                     # We already have a partial url in the database.
                     rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, object_type=self.object_type)
                 else:
-                    field_key = instance.lookup_field
-                    kwds = { field_key : getattr(instance, field_key, None) }
+                    field_key = getattr(instance, 'lookup_field', None)
+                    if not field_key:
+                        kwds = {}
+                    else:
+                        kwds = { field_key : getattr(instance, field_key, None) }
                     kwds.update(prepare_related_data(instance))
                     try:
                         rv_adaptor = ci.get_object(object_type=self.object_type, **kwds)

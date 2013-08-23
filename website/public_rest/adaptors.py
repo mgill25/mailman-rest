@@ -278,8 +278,11 @@ class UserAdaptor(BaseAdaptor):
             self._preferences = PreferencesAdaptor(self.connection, path)
         return self._preferences
 
-    def save(self):
-        data = {'display_name': self.display_name}
+    def save(self, data={}):
+        if data:
+            del data['email']
+        if not data:
+            data = {'display_name': self.display_name}
         if self._cleartext_password is not None:
             data['cleartext_password'] = self._cleartext_password
         self.cleartext_password = None

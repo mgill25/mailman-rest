@@ -31,6 +31,7 @@ class IsValidMembershipPermission(permissions.BasePermission):
 class BaseMembershipPermission(permissions.BasePermission):
 
     def has_valid_memberships(self, user, role):
+        #TODO: Even in the case of empty memberships, we can grant permission.
         memberships = Membership.objects.filter(user=user, role=role)
         if memberships and memberships.exists():
             return True

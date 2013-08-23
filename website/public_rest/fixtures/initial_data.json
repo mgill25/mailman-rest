@@ -10,5 +10,14 @@
         },
         "model": "public_rest.user",
         "pk": 1
+    },
+    {
+        "fields": {
+            "address": "admin@admin.com",
+            "verified": false,
+            "user": 1
+        },
+        "model": "public_rest.email",
+        "pk": 1
     }
 ]

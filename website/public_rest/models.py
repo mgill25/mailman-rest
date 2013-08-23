@@ -382,10 +382,6 @@ class Email(BaseModel):
     def save(self, *args, **kwargs):
         if self.pk is None:
             super(Email, self).save(*args, **kwargs)
-            if self.user and self.user.preferred_email is None:
-                self.user.preferred_email = self
-                self.user.save()
-            # preferences
             self.preferences = EmailPrefs()
             self.preferences.save()
         else:
@@ -397,14 +393,13 @@ class Email(BaseModel):
 
 class UserManager(BaseUserManager):
 
-    def create_user(self, display_name, email, password):
+    def create(self, display_name, password, email=None):
         if not display_name:
             raise ValueError("No display_name Provided!")
         if not password:
             raise ValueError("No Password Provided!")
         user = self.model(display_name=display_name)
-        user.save()
-        user.add_email(email)
+        user.create_preferred_email(address=email)     # let the first email be the preferred one
         user.set_password(password)
         return user
 
@@ -446,8 +441,8 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
         return self.email_set.all()
 
     def create_preferred_email(self, address):
-        email, created = Email.objects.get_or_create(address=address,
-                                                     user=self)
+        email, created = Email.objects.get_or_create(address=address, user=self)
+        self.email_set.add(email)       #XXX: Not working...
         self.preferred_email = email
         self.save()
 
@@ -495,12 +490,11 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
         else:
             super(AbstractUser, self).save(*args, **kwargs)
 
-# AbstractRemotelyBackedObject
-class User(AbstractUser):
-    fields = [('display_name', 'display_name'), ('email', 'email'),
-            ('password', 'password')]
+
+class User(AbstractUser, AbstractRemotelyBackedObject):
+    fields = [('display_name', 'display_name'),
+            ('preferred_email.address', 'email')]
     object_type = 'user'
-    lookup_field = 'address'
     adaptor = UserAdaptor
 
 
