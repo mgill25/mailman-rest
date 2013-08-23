@@ -19,39 +19,41 @@ class IsValidMembershipPermission(permissions.BasePermission):
         # a member. How to ensure that she would have permissions
         # for the first and not the second?
         user = request.user
-        logger.debug("-------------------------")
         logger.debug("Incoming obj: {0}".format(obj))
         logger.debug("Incoming user: {0}".format(user))
-        logger.debug("-------------------------")
         memberships = Membership.objects.filter(user=user)
         if memberships and memberships.exists():
             return True
         return False
 
 class BaseMembershipPermission(permissions.BasePermission):
-
-    def has_valid_memberships(self, user, role):
+    """
+    Authentication is necessary.
+    """
+    def has_valid_memberships(self, request, user, role):
         #TODO: Even in the case of empty memberships, we can grant permission.
-        memberships = Membership.objects.filter(user=user, role=role)
-        if memberships and memberships.exists():
-            return True
-        return False
+        logger.debug("Incoming user: {0}".format(user, type(user)))
+        if request.user and request.user.is_authenticated():
+            memberships = Membership.objects.filter(user=user, role=role)
+            if memberships and memberships.exists():
+                return True
+            return False
 
 class IsValidModeratorPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return self.has_valid_memberships(user, 'moderator')
+        return self.has_valid_memberships(request, user, 'moderator')
 
 class IsValidOwnerPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return self.has_valid_memberships(user, 'owner')
+        return self.has_valid_memberships(request, user, 'owner')
 
 class IsValidMemberPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return self.has_valid_memberships(user, 'member')
+        return self.has_valid_memberships(request, user, 'member')
 
