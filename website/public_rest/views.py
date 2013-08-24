@@ -71,6 +71,7 @@ class MailingListViewSet(BaseModelViewSet):
 
     queryset = MailingList.objects.all()
     serializer_class = MailingListSerializer
+    filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
 
     def create(self, request):
         """
