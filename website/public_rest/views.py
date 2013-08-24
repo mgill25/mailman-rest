@@ -3,7 +3,7 @@ import logging
 from django.contrib.auth.models import Group
 from rest_framework import viewsets, response
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 
 from .serializers import UserSerializer, MembershipSerializer, \
         MailingListSerializer, DomainSerializer, EmailSerializer
@@ -42,7 +42,9 @@ class EmailViewSet(BaseModelViewSet):
     queryset = Email.objects.all()
     serializer_class = EmailSerializer
     filter_fields = ('user', 'address', 'verified',)
-    permission_classes = [IsValidOwnerPermission, IsValidModeratorPermission]
+    permission_classes = [IsValidOwnerPermission,
+                          IsValidModeratorPermission,
+                          IsAdminUser]
 
     def get_queryset(self):
         queryset = self.queryset

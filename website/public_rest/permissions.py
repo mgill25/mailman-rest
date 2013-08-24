@@ -37,7 +37,7 @@ class BaseMembershipPermission(permissions.BasePermission):
             memberships = Membership.objects.filter(user=user, role=role)
             if memberships and memberships.exists():
                 return True
-            return False
+        return False
 
 class IsValidModeratorPermission(BaseMembershipPermission):
 
