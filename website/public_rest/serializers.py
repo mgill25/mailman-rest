@@ -2,6 +2,21 @@ from rest_framework import serializers
 from public_rest.models import MailingList, Membership, User, Domain, Email
 
 
+# Partial Serializers
+class _PartialMembershipSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Membership
+        fields = ('url', 'address')
+
+
+class _PartialMailingListSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = MailingList
+        fields = ('url', 'fqdn_listname')
+
+
+# Full Serializers
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     emails = serializers.RelatedField(many=True)
 
@@ -17,17 +32,14 @@ class MembershipSerializer(serializers.HyperlinkedModelSerializer):
 
     is_owner = serializers.Field('is_owner')
     is_moderator = serializers.Field('is_moderator')
+    #mlist = serializers.RelatedField()
+    mlist = _PartialMailingListSerializer()
+    user = serializers.RelatedField()
 
     class Meta:
         model = Membership
         fields = ('url', 'address', 'role', 'user', 'mlist',
-                'is_owner', 'is_moderator')
-
-class _PartialMembershipSerializer(serializers.HyperlinkedModelSerializer):
-    """Partial serializer for nested representations."""
-    class Meta:
-        model = Membership
-        fields = ('url', 'address')
+                'is_owner', 'is_moderator', )
 
 
 class MailingListSerializer(serializers.HyperlinkedModelSerializer):
@@ -49,12 +61,6 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
                 #'members', 'owners', 'moderators',
                 )
 
-
-class _PartialMailingListSerializer(serializers.HyperlinkedModelSerializer):
-
-    class Meta:
-        model = MailingList
-        fields = ('url', 'fqdn_listname')
 
 
 class DomainSerializer(serializers.HyperlinkedModelSerializer):

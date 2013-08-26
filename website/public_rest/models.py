@@ -538,7 +538,7 @@ class MembershipPrefs(BasePrefs):
     lookup_field = 'address'
 
     def __unicode__(self):
-        return self.membership.address
+        return self.membership.address.address
 
 
 class Membership(BaseModel, AbstractRemotelyBackedObject):
@@ -550,7 +550,7 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
 
     fields = [ ('user.display_name', 'user'),
                ('mlist', 'list_id'),
-               ('address', 'address'),
+               ('address.address', 'address'),
                ('role', 'role'),
             ]
 
@@ -562,9 +562,13 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
             (MODERATOR, 'Moderator'),
             (MEMBER, 'Member')
     )
+
+    class Meta:
+        unique_together = (("mlist", "address"),)
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     mlist = models.ForeignKey(MailingList, null=True)
-    address = models.EmailField()         #TODO: This should be associated with Email, but that's too many relations atm. *Sigh*
+    address = models.ForeignKey(Email, null=True)
     preferences = models.OneToOneField(MembershipPrefs, null=True)
 
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=MEMBER)
