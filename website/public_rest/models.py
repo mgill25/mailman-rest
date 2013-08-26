@@ -154,7 +154,8 @@ class ListSettings(ListParametersMixin, AbstractRemotelyBackedObject):
     object_type = 'listsettings'
     lookup_field = 'fqdn_listname'
     adaptor = SettingsAdaptor
-    fields = [(name, name) for name in ListParametersMixin._meta.get_all_field_names() if name != u'id']
+    fields = [(name, name) for name in ListParametersMixin._meta.get_all_field_names()
+              if name != u'id']
 
     @property
     def acceptable_aliases(self):
@@ -404,7 +405,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, display_name, email, password):
-        user = self.create_user(display_name=display_name, email=email, password=password)
+        user = self.create(display_name=display_name, email=email, password=password)
         user.is_admin=True
         user.is_staff=True
         user.is_superuser=True

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from public_rest.models import MailingList, Membership, User, Domain, Email
+from public_rest.models import *
 
 
 # Partial Serializers
@@ -50,17 +50,25 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
     owners = serializers.Field('owners')
     moderators = serializers.Field('moderators')
     fqdn_listname = serializers.Field('fqdn_listname')
+    settings = serializers.RelatedField()
     membership_set = _PartialMembershipSerializer(many=True)
     #membership_listing = serializers.HyperlinkedIdentityField(view_name='membership-list')
 
     class Meta:
         model = MailingList
         fields = ('url', 'fqdn_listname', 'list_name', 'mail_host',
-                'membership_set',
+                'membership_set', 'settings',
                 #'membership_listing',
                 #'members', 'owners', 'moderators',
                 )
 
+
+class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = ListSettings
+        fields = tuple([fn for fn in ListSettings._meta.get_all_field_names()
+                        if fn != 'id' or fn != 'partial_URL'
+                       ])
 
 
 class DomainSerializer(serializers.HyperlinkedModelSerializer):

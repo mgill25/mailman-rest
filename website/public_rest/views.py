@@ -113,7 +113,12 @@ class MailingListViewSet(BaseModelViewSet):
             return response.Response(data='Domain not found', status=404)
         mlist = domain.create_list(request.POST['list_name'])
         serializer = MailingListSerializer(mlist)
-        return response.Response(serializer.data)
+        return response.Response(serializer.data, response=201)
+
+
+class ListSettingsViewSet(BaseModelViewSet):
+    queryset = ListSettings.objects.all()
+    serializer_class = ListSettingsSerializer
 
 
 class DomainViewSet(BaseModelViewSet):
