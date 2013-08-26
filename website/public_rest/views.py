@@ -5,10 +5,8 @@ from rest_framework import viewsets, response
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 
-from .serializers import UserSerializer, MembershipSerializer, \
-        MailingListSerializer, DomainSerializer, EmailSerializer
-
-from public_rest.models import User, Membership, MailingList, Domain, Email
+from public_rest.serializers import *
+from public_rest.models import *
 from public_rest.permissions import *
 
 #logging
@@ -67,7 +65,36 @@ class MembershipViewSet(BaseModelViewSet):
 
     queryset = Membership.objects.all()
     serializer_class = MembershipSerializer
+    permission_classes = [IsAdminUser,]
+    filter_fields = ('role', 'user',)
 
+    def create(self, request):
+        """Membership creation"""
+        role = request.POST['role']
+        list_name = request.POST['mlist']
+        address = request.POST['address']
+
+        try:
+            mlist = MailingList.objects.get(fqdn_listname=list_name)
+            logger.debug("List found! {0}".format(mlist))
+        except MailingList.DoesNotExist:
+            return response.Response(data='List not found.', status=404)
+
+        try:
+            email = Email.objects.get(address=address)
+            user = email.user
+        except Email.DoesNotExist, User.DoesNotExist:
+            return response.Response(data='User not found.', status=404)
+
+        membership, created = Membership.objects.get_or_create(mlist=mlist, address=address,
+                                                              role=role)
+        #membership = Membership(mlist=mlist, address=email, role=role, user=user)
+        #membership.save()
+        if created:
+            serializer = MembershipSerializer(membership)
+            return response.Response(data=serializer.data, status=201)
+        else:
+            return response.Response(data='Already Exists', status=400)
 
 class MailingListViewSet(BaseModelViewSet):
 
