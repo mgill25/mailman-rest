@@ -50,7 +50,6 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
     owners = serializers.Field('owners')
     moderators = serializers.Field('moderators')
     fqdn_listname = serializers.Field('fqdn_listname')
-    settings = serializers.RelatedField()
     membership_set = _PartialMembershipSerializer(many=True)
     #membership_listing = serializers.HyperlinkedIdentityField(view_name='membership-list')
 
@@ -66,9 +65,8 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
 class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ListSettings
-        fields = tuple([fn for fn in ListSettings._meta.get_all_field_names()
-                        if fn != 'id' or fn != 'partial_URL'
-                       ])
+        exclude = ('partial_URL', 'id', 'http_etag', 'acceptablealias')
+
 
 
 class DomainSerializer(serializers.HyperlinkedModelSerializer):
