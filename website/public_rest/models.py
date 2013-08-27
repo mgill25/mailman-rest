@@ -216,9 +216,11 @@ class CoreListMixin(models.Model):
             # Save the list
             super(CoreListMixin, self).save(*args, **kwargs)
             # Make sure settings are present
-            if not self.settings:
-                self.settings = ListSettings(fqdn_listname=self.fqdn_listname)
-                self.settings.save()
+            if self.settings is None:
+                settings = ListSettings(fqdn_listname=self.fqdn_listname)
+                settings.save()
+                self.settings = settings
+            super(CoreListMixin, self).save(*args, **kwargs)
             # Populate
             if not self.settings.join_address:
                 self.settings.join_address = u'{0}-join@{1}'.format(self.list_name, self.mail_host)
@@ -565,7 +567,7 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
     )
 
     class Meta:
-        unique_together = (("mlist", "address"),)
+        unique_together = (("mlist", "address", "role"),)
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     mlist = models.ForeignKey(MailingList, null=True)
