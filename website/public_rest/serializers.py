@@ -61,6 +61,12 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
                 #'members', 'owners', 'moderators',
                 )
 
+class MailingListDetailSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = MailingList
+        fields = ('url', 'fqdn_listname', 'list_name', 'mail_host',
+                'settings')
+
 
 class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:

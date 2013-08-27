@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth.models import Group
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, response
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
@@ -96,11 +97,25 @@ class MembershipViewSet(BaseModelViewSet):
         else:
             return response.Response(data='Already Exists', status=400)
 
+
 class MailingListViewSet(BaseModelViewSet):
 
     queryset = MailingList.objects.all()
     serializer_class = MailingListSerializer
     filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
+
+    def list(self, request):
+        """Don't list memberships in the list view"""
+        queryset = self.queryset
+        serializer = MailingListDetailSerializer(queryset, many=True)
+        return response.Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        """Memberships are listed herei in detail view"""
+        queryset = self.queryset
+        mlist = get_object_or_404(queryset, pk=pk)
+        serializer = MailingListSerializer(mlist)
+        return response.Response(serializer.data)
 
     def create(self, request):
         """
