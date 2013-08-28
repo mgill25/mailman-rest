@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import logging
-import requests
 from operator import itemgetter
 from urlparse import urljoin, urlsplit
 
