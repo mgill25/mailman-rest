@@ -18,7 +18,7 @@ from django.db import models
 from django.db.models.query import QuerySet, EmptyQuerySet
 from model_utils.managers import PassThroughManager
 
-from public_rest.api import CoreInterface, Connection
+from public_rest.api import CoreInterface, Connection, MailmanConnectionError
 from public_rest.utils import get_related_attribute
 
 ci = CoreInterface()
@@ -258,6 +258,10 @@ class AbstractRemotelyBackedObject(AbstractObject):
         """
         logger.info("Inside AbstractRemotelyBackedObject!")
 
+        # TODO: Properly handle disallowed methods for objects
+        disallow_updates = ['domain', 'mailinglist', 'membership',
+                            'preferences']   # You can PATCH `deliver_mode` on membership preferences.
+
         def prepare_related_data(instance):
             """Prepare data that would be used for looking
             up objects remotely."""
@@ -322,18 +326,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             else:
                 return res
 
-        # Handle post_save
-        instance = kwargs['instance']
-        logger.info('Post_save {object_type} in {layer} layer'.format(layer=self.layer, object_type=self.object_type))
-
-        backing_data = prepare_backing_data(instance)
-
-        # handle object get/create
-        # TODO: Properly handle disallowed methods for objects
-        disallow_updates = ['domain', 'mailinglist', 'membership',
-                            'preferences']   # You can PATCH `deliver_mode` on membership preferences.
-
-        if kwargs.get('created'):
+        def backup_object(instance):
             logger.debug("data: {0}".format(backing_data))
             res = get_or_create_object(instance, data=backing_data)
             if res:
@@ -347,11 +340,27 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 if instance.object_type not in disallow_updates:
                     ci.update_object(object_type=self.object_type,
                             partial_url=instance.partial_URL, data=backing_data)
-        else:
-            # PATCH the fields in back.
-            if instance.object_type not in disallow_updates:
-                logger.debug("partial_url: {0}".format(instance.partial_URL))
-                ci.update_object(object_type=self.object_type,
-                        partial_url=instance.partial_URL, data=backing_data)
-        super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
 
+        # Handle post_save
+        logger.info('Post_save {object_type} in {layer} layer'.format(
+            layer=self.layer, object_type=self.object_type))
+
+        instance = kwargs['instance']
+        backing_data = prepare_backing_data(instance)
+        # handle object get/create
+        try:
+            if kwargs.get('created'):
+                backup_object(instance)
+            else:
+                # PATCH the fields in back.
+                if instance.partial_URL:
+                    if instance.object_type not in disallow_updates:
+                        logger.debug("partial_url: {0}".format(instance.partial_URL))
+                        ci.update_object(object_type=self.object_type,
+                                partial_url=instance.partial_URL, data=backing_data)
+                else:
+                    # No partial URL, object is to be completely backed up
+                    backup_object(instance)
+            super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
+        except MailmanConnectionError as e:
+            logger.info("Could not back up properly: {0}".format(e))
