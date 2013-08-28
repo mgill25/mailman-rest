@@ -2,8 +2,9 @@ import logging
 
 from django.contrib.auth.models import Group
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, response
 from rest_framework.filters import SearchFilter
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 
 from public_rest.serializers import *
@@ -14,7 +15,7 @@ from public_rest.permissions import *
 logger = logging.getLogger(__name__)
 
 
-class BaseModelViewSet(viewsets.ModelViewSet):
+class BaseModelViewSet(ModelViewSet):
     def str2bool(self, s):
         return s.lower() in ['true']
 
@@ -79,13 +80,13 @@ class MembershipViewSet(BaseModelViewSet):
             mlist = MailingList.objects.get(fqdn_listname=list_name)
             logger.debug("List found! {0}".format(mlist))
         except MailingList.DoesNotExist:
-            return response.Response(data='List not found.', status=404)
+            return Response(data='List not found.', status=404)
 
         try:
             email = Email.objects.get(address=address)
             user = email.user
         except Email.DoesNotExist, User.DoesNotExist:
-            return response.Response(data='User not found.', status=404)
+            return Response(data='User not found.', status=404)
 
         membership, created = Membership.objects.get_or_create(mlist=mlist, address=address,
                                                               role=role)
@@ -93,9 +94,9 @@ class MembershipViewSet(BaseModelViewSet):
         #membership.save()
         if created:
             serializer = MembershipSerializer(membership, context={'request': request})
-            return response.Response(data=serializer.data, status=201)
+            return Response(data=serializer.data, status=201)
         else:
-            return response.Response(data='Already Exists', status=400)
+            return Response(data='Already Exists', status=400)
 
 
 class MailingListViewSet(BaseModelViewSet):
@@ -115,6 +116,7 @@ class MailingListViewSet(BaseModelViewSet):
             queryset = self.queryset.filter(fqdn_listname=fqdn_listname)
         if mail_host is not None:
             queryset = self.queryset.filter(mail_host=mail_host)
+
         return queryset
 
     def list(self, request):
@@ -123,7 +125,7 @@ class MailingListViewSet(BaseModelViewSet):
         serializer = MailingListDetailSerializer(queryset,
                 many=True,
                 context={'request': request})
-        return response.Response(serializer.data)
+        return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         """Memberships are listed here in detail view"""
@@ -131,7 +133,7 @@ class MailingListViewSet(BaseModelViewSet):
         mlist = get_object_or_404(queryset, pk=pk)
         serializer = MailingListSerializer(mlist,
                 context={'request': request})
-        return response.Response(serializer.data)
+        return Response(serializer.data)
 
     def create(self, request):
         """
@@ -141,11 +143,11 @@ class MailingListViewSet(BaseModelViewSet):
         try:
             domain = Domain.objects.get(mail_host=request.POST['mail_host'])
         except Domain.DoesNotExist:
-            return response.Response(data='Domain not found', status=404)
+            return Response(data='Domain not found', status=404)
         mlist = domain.create_list(request.POST['list_name'])
         serializer = MailingListSerializer(mlist,
                 context={'request': request})
-        return response.Response(serializer.data, status=201)
+        return Response(serializer.data, status=201)
 
 
 class ListSettingsViewSet(BaseModelViewSet):
