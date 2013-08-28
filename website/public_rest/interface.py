@@ -292,26 +292,20 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 backing_data[remote_field_name] = field_val
             return backing_data
 
-        def get_object(instance, url=None):
+        def get_object(instance):
             """Returns the ObjectAdaptor. """
-            logger.debug("Getting object...")
-            if url is None:
-                object_model = instance.__class__
-                if instance.partial_URL:
-                    # We already have a partial url in the database.
-                    rv_adaptor = ci.get_object_from_url(partial_url=instance.partial_URL, object_type=self.object_type)
-                else:
-                    field_key = getattr(instance, 'lookup_field', None)
-                    if not field_key:
-                        kwds = {}
-                    else:
-                        kwds = { field_key : getattr(instance, field_key, None) }
-                    kwds.update(prepare_related_data(instance))
-                    try:
-                        rv_adaptor = ci.get_object(object_type=self.object_type, **kwds)
-                    except HTTPError:
-                        return None
-                return rv_adaptor
+            object_model = instance.__class__
+            field_key = getattr(instance, 'lookup_field', None)
+            if not field_key:
+                kwds = {}
+            else:
+                kwds = { field_key : getattr(instance, field_key, None) }
+            kwds.update(prepare_related_data(instance))
+            try:
+                adaptor = ci.get_object(partial_url=instance.partial_URL, object_type=self.object_type, **kwds)
+            except HTTPError:
+                return None
+            return adaptor
 
         def get_or_create_object(instance, data=None):
             object_model = instance.__class__
@@ -357,7 +351,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
                     if instance.object_type not in disallow_updates:
                         logger.debug("partial_url: {0}".format(instance.partial_URL))
                         ci.update_object(object_type=self.object_type,
-                                partial_url=instance.partial_URL, data=backing_data)
+                                         partial_url=instance.partial_URL,
+                                         data=backing_data)
                 else:
                     # No partial URL, object is to be completely backed up
                     backup_object(instance)

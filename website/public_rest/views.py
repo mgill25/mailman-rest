@@ -60,7 +60,9 @@ class EmailViewSet(BaseModelViewSet):
             queryset = queryset.filter(verified=verified)
         if user is not None:
             queryset = queryset.filter(user__display_name=user)
-        return queryset
+
+        self.queryset = queryset
+        return super(EmailViewSet, self).get_queryset()
 
 
 class MembershipViewSet(BaseModelViewSet):
@@ -106,6 +108,8 @@ class MailingListViewSet(BaseModelViewSet):
     #filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
 
     def get_queryset(self):
+        #XXX: not working
+        queryset = self.queryset
         list_name = self.request.QUERY_PARAMS.get('list_name', None)
         fqdn_listname = self.request.QUERY_PARAMS.get('fqdn_listname', None)
         mail_host = self.request.QUERY_PARAMS.get('mail_host', None)
@@ -117,7 +121,8 @@ class MailingListViewSet(BaseModelViewSet):
         if mail_host is not None:
             queryset = self.queryset.filter(mail_host=mail_host)
 
-        return queryset
+        self.queryset = queryset
+        return super(MailingListViewSet, self).get_queryset()
 
     def list(self, request):
         """Don't list memberships in the list view"""
