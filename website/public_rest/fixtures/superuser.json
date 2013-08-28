@@ -1,0 +1,25 @@
+[
+	{
+		"fields": {
+		    "address": "admin@example.com",
+		    "user": 1
+		},
+		"model": "public_rest.email",
+		"pk": 1
+	},
+    {
+        "fields": {
+            "created_on": "2013-07-05T14:56:45.835",
+            "display_name": "admin",
+            "is_superuser": true,
+			"is_staff": true,
+			"is_active": true,
+            "last_login": "2013-07-05T14:56:45.540",
+            "password": "pbkdf2_sha256$10000$OtBiPXXuH2to$nlDZhXlnJrZ/1i8psRXXTD8HmKvoczGMz8DXJtOaupY=",
+            "user_id": "7032841381610759933983108433213079961",
+		    "preferred_email": 1
+        },
+        "model": "public_rest.user",
+        "pk": 1
+    }
+]
