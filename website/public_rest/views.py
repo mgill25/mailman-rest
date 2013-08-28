@@ -111,7 +111,7 @@ class MailingListViewSet(BaseModelViewSet):
         return response.Response(serializer.data)
 
     def retrieve(self, request, pk=None):
-        """Memberships are listed herei in detail view"""
+        """Memberships are listed here in detail view"""
         queryset = self.queryset
         mlist = get_object_or_404(queryset, pk=pk)
         serializer = MailingListSerializer(mlist)
