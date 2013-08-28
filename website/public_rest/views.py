@@ -92,7 +92,7 @@ class MembershipViewSet(BaseModelViewSet):
         #membership = Membership(mlist=mlist, address=email, role=role, user=user)
         #membership.save()
         if created:
-            serializer = MembershipSerializer(membership)
+            serializer = MembershipSerializer(membership, context={'request': request})
             return response.Response(data=serializer.data, status=201)
         else:
             return response.Response(data='Already Exists', status=400)
@@ -102,19 +102,35 @@ class MailingListViewSet(BaseModelViewSet):
 
     queryset = MailingList.objects.all()
     serializer_class = MailingListSerializer
-    filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
+    #filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
+
+    def get_queryset(self):
+        list_name = self.request.QUERY_PARAMS.get('list_name', None)
+        fqdn_listname = self.request.QUERY_PARAMS.get('fqdn_listname', None)
+        mail_host = self.request.QUERY_PARAMS.get('mail_host', None)
+
+        if list_name is not None:
+            queryset = self.queryset.filter(list_name=list_name)
+        if fqdn_listname is not None:
+            queryset = self.queryset.filter(fqdn_listname=fqdn_listname)
+        if mail_host is not None:
+            queryset = self.queryset.filter(mail_host=mail_host)
+        return queryset
 
     def list(self, request):
         """Don't list memberships in the list view"""
         queryset = self.queryset
-        serializer = MailingListDetailSerializer(queryset, many=True)
+        serializer = MailingListDetailSerializer(queryset,
+                many=True,
+                context={'request': request})
         return response.Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         """Memberships are listed here in detail view"""
         queryset = self.queryset
         mlist = get_object_or_404(queryset, pk=pk)
-        serializer = MailingListSerializer(mlist)
+        serializer = MailingListSerializer(mlist,
+                context={'request': request})
         return response.Response(serializer.data)
 
     def create(self, request):
@@ -127,13 +143,15 @@ class MailingListViewSet(BaseModelViewSet):
         except Domain.DoesNotExist:
             return response.Response(data='Domain not found', status=404)
         mlist = domain.create_list(request.POST['list_name'])
-        serializer = MailingListSerializer(mlist)
+        serializer = MailingListSerializer(mlist,
+                context={'request': request})
         return response.Response(serializer.data, status=201)
 
 
 class ListSettingsViewSet(BaseModelViewSet):
     queryset = ListSettings.objects.all()
     serializer_class = ListSettingsSerializer
+    #TODO: partial_updates won't succeed if empty fields are present
 
 
 class DomainViewSet(BaseModelViewSet):
