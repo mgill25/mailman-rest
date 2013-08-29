@@ -3,7 +3,7 @@ from rest_framework import serializers
 from public_rest.models import *
 
 
-# Partial Serializers
+# Partial or Support Serializers
 class _PartialMembershipSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Membership
@@ -16,8 +16,13 @@ class _PartialMailingListSerializer(serializers.HyperlinkedModelSerializer):
         model = MailingList
         fields = ('url', 'fqdn_listname')
 
+class ListPaginatorSerializer(serializers.Serializer):
+    next = pagination.NextPageField(source='*')
+    prev = pagination.PreviousPageField(source='*')
 
-# Full Serializers
+
+#################################################################
+# Primary Model Serializers
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     emails = serializers.RelatedField(many=True)
 
@@ -27,7 +32,6 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
                 'preferred_email'
                 #'membership_set',
                 )
-
 
 class MembershipSerializer(serializers.HyperlinkedModelSerializer):
 
@@ -41,11 +45,6 @@ class MembershipSerializer(serializers.HyperlinkedModelSerializer):
         model = Membership
         fields = ('url', 'address', 'role', 'user', 'mlist',
                 'is_owner', 'is_moderator', )
-
-
-class ListPaginatorSerializer(serializers.Serializer):
-    next = pagination.NextPageField(source='*')
-    prev = pagination.PreviousPageField(source='*')
 
 
 class MailingListSerializer(serializers.HyperlinkedModelSerializer):
