@@ -10,8 +10,13 @@ router.register(r'domains', views.DomainViewSet)
 router.register(r'emails', views.EmailViewSet)
 
 # Wire up our API using automatic URL routing.
+list_settings = views.MailingListViewSet.as_view({
+    'get': 'settings',
+})
+
 # Additionally, we include login URLs for the browseable API.
 urlpatterns = patterns('',
     url(r'^api/', include(router.urls)),
+    url(r'^api/lists/(?P<pk>[0-9]+)/settings/$', list_settings, name='list-settings'),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 )
