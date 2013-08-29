@@ -2,6 +2,7 @@ import logging
 
 from django.contrib.auth.models import Group
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import link, action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -106,6 +107,12 @@ class MailingListViewSet(BaseModelViewSet):
     queryset = MailingList.objects.all()
     serializer_class = MailingListSerializer
     #filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
+
+    @link()
+    def settings(self, request, *args, **kwargs):
+        settings = self.get_object().settings
+        serializer = ListSettingsSerializer(settings)
+        return Response(serializer.data)
 
     def get_queryset(self):
         #XXX: not working
