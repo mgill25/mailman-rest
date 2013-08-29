@@ -123,8 +123,11 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                 url = urljoin(lower_url, '?{params}'.format(params=params))
             else:
                 url = lower_url
-
-            adaptor_list = ci.get_all_from_url(url, object_type=self.model.object_type)
+            try:
+                adaptor_list = ci.get_all_from_url(url, object_type=self.model.object_type)
+            except MailmanConnectionError as e:
+                logger.info("Exception - {0}".format(e))
+                adaptor_list = []
 
             if len(adaptor_list) == 0:
                 return EmptyQuerySet(model=self.model)
