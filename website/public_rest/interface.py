@@ -81,8 +81,8 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
     FILTER_IGNORE_FIELDS = ['url', ]
 
     def filter(self, *args, **kwargs):
-        logger.info("Processing {0} Remote filter!".format(self.model.layer))
-        logger.info("Kwargs: {0}".format(kwargs))
+        #logger.info("Processing {0} Remote filter!".format(self.model.layer))
+        #logger.info("Kwargs: {0}".format(kwargs))
 
         def sanitize_query_and_endpoint(object_type, endpoint, **kwargs):
             """
@@ -98,78 +98,81 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
             for key, val in kwargs.items():
                 if "__exact" in key:
                     key = key.split("__")[0]
+                elif  "__" in key:
+                    key = key.split("__")[1]
                 new_dict[key] = val
             params = urlencode(new_dict)
             return params, endpoint
 
         # Look at this layer, if empty, look to layers below.
         records = super(RemoteObjectQuerySet, self).filter(*args, **kwargs)
-        logger.debug("Records : {0}".format(records))
         if records and records.exists():
             return records
         #XXX: filter returns immediately, but DRF makes another call where the condition
         #is false, even when it was true before.
         else:
-            logger.info("Pull records up from {layer} layer".format(layer=self.model.get_lower_layer()))
+            #logger.info("Pull records up from {layer} layer".format(layer=self.model.get_lower_layer()))
             endpoint = ci.get_api_endpoint(object_type=self.model.object_type)
             params, endpoint = sanitize_query_and_endpoint(object_type=self.model.object_type,
                                                            endpoint=endpoint, **kwargs)
             lower_url = urljoin('{0}/3.0/'.format(settings.MAILMAN_API_URL),
                                 '{0}'.format(endpoint))
+
             if params:
+                #logger.debug("Sanitized Params: {0}".format(params))
                 url = urljoin(lower_url, '?{params}'.format(params=params))
             else:
                 url = lower_url
+
             adaptor_list = ci.get_all_from_url(url, object_type=self.model.object_type)
+
             if len(adaptor_list) == 0:
                 return EmptyQuerySet(model=self.model)
             elif len(adaptor_list) > 0:
                 # Create the image records and save them on this level
                 for record in adaptor_list:
+                    logger.debug("Working on {0} record!".format(record))
                     m = self.model()
                     m.partial_URL = urlsplit(record.url).path
-                    logger.debug("Saving {0} at {1}".format(self.model.object_type, m.layer))
-                    logger.debug(" {0}".format(record))
+                    logger.debug("----------------->>>>")
                     for field in record:
                         if not field in self.FILTER_IGNORE_FIELDS:
-                            ###  When the field is a ForeignKey URL, we must convert it to the current layer
                             field_val = getattr(record, field)
-                            logger.debug("   Field: {0}: {1}".format(field, field_val))
+                            logger.debug("record field: {0} --- {1}".format(field, field_val))
                             try:
                                 setattr(m, field, field_val)
                             except ValueError:
-                                logger.info("ValueError, probably a Related Model Adaptor!")
-                                logger.debug("+  {0}: {1}".format(field, field_val))
+                                # the field is possibly a ForeignKey
                                 related_model = getattr(self.model, field).field.rel.to.objects.model
                                 logger.info("====Related Model: {0}====".format(related_model))
+
                                 try:
                                     partial_URL = urlsplit(field_val).path
                                 except AttributeError:
-                                    partial_URL = field_val.self_link
+                                    partial_URL = urlsplit(field_val.url).path
 
                                 try:
                                     related_record = related_model.objects.get(partial_URL=partial_URL)
+                                except related_model.DoesNotExist:
+                                    raise ValueError("Related record does not exist!")
                                 except FieldError:
-                                    # Related field is probably not remotely backed.
-                                    raise ValueError("Related field's partial_URL doesn't exist")
+                                    raise ValueError("partial_URL doesn't exist, the field is not remotely backed up.")
                                 except:
                                     logger.debug("+  Exception raised")
                                     raise
 
-                                #field_key = field_val.keyed_on
-                                #kwds = { field_key : getattr(field_val, field_key) }
-                                logger.debug("        Creating {0} from {1}".format(field, kwds))
-                                logger.debug("        Converting {0}".format(getattr(self.model, field).field.rel.to.objects))
-                                #related_record = getattr(self.model, field).field.rel.to.objects.get(**kwds)
-                                #related_record.save()
+                                kwds = { field : getattr(field_val, field) }
+                                logger.debug("\tCreating {0} from {1}".format(field, kwds))
+                                logger.debug("\tConverting {0}".format(getattr(self.model, field).field.rel.to.objects))
+                                related_record = getattr(self.model, field).field.rel.to.objects.get(**kwds)
+                                related_record.save()
                                 setattr(m, field, related_record)
                                 field_val = related_record
-                            logger.debug("   {0}: {1}".format(field, field_val))
+                    logger.debug("About to save record m: {0}".format(m))
                     m.save()
                 return super(RemoteObjectQuerySet, self).filter(*args, **kwargs)
             else:
                 return EmptyQuerySet(model=self.model)
-
 
 
 #  Managers

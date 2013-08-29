@@ -1,3 +1,4 @@
+from rest_framework import pagination
 from rest_framework import serializers
 from public_rest.models import *
 
@@ -42,7 +43,15 @@ class MembershipSerializer(serializers.HyperlinkedModelSerializer):
                 'is_owner', 'is_moderator', )
 
 
+class ListPaginatorSerializer(serializers.Serializer):
+    next = pagination.NextPageField(source='*')
+    prev = pagination.PreviousPageField(source='*')
+
+
 class MailingListSerializer(serializers.HyperlinkedModelSerializer):
+
+    total_results = serializers.Field(source='paginator.count')
+    results_field = 'objects'
 
     #XXX: mail_host should only be writable at creation time.
     # Read-only
@@ -50,8 +59,11 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
     owners = serializers.Field('owners')
     moderators = serializers.Field('moderators')
     fqdn_listname = serializers.Field('fqdn_listname')
-    membership_set = _PartialMembershipSerializer(many=True)
-    #membership_listing = serializers.HyperlinkedIdentityField(view_name='membership-list')
+    #membership_set = _PartialMembershipSerializer(many=True)
+    #membership_listing = serializers.HyperlinkedIdentityField(
+    #        view_name='membership-detail',
+    #        lookup_field='fqdn_listname'
+    #)
 
     class Meta:
         model = MailingList
