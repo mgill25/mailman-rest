@@ -51,7 +51,7 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
     owners = serializers.Field('owners')
     moderators = serializers.Field('moderators')
     fqdn_listname = serializers.Field('fqdn_listname')
-    #membership_set = _PartialMembershipSerializer(many=True)
+    membership_set = _PartialMembershipSerializer(many=True, read_only=True)
     #membership_listing = serializers.HyperlinkedIdentityField(
     #        view_name='membership-detail',
     #        lookup_field='fqdn_listname'
@@ -81,7 +81,7 @@ class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
 
 class DomainSerializer(serializers.HyperlinkedModelSerializer):
     #mailinglist_listing = serializers.HyperlinkedIdentityField(view_name='mailinglist-list')
-    mailinglist_set = _PartialMailingListSerializer(many=True)
+    mailinglist_set = _PartialMailingListSerializer(many=True,read_only=True)
     class Meta:
         model = Domain
         fields = ('base_url', 'mail_host', 'contact_address', 'description', 'mailinglist_set')
