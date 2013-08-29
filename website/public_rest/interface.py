@@ -110,22 +110,25 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
         #XXX: filter returns immediately, but DRF makes another call where the condition
         #is false, even when it was true before.
         else:
-            logger.info("Pull records up from {layer} layer".format(layer=self.model.get_lower_layer()))
-            endpoint = ci.get_api_endpoint(object_type=self.model.object_type)
-            params, endpoint = sanitize_query_and_endpoint(object_type=self.model.object_type,
-                                                           endpoint=endpoint, **kwargs)
-            lower_url = urljoin('{0}/3.0/'.format(settings.MAILMAN_API_URL),
-                                '{0}'.format(endpoint))
-            if params:
-                url = urljoin(lower_url, '?{params}'.format(params=params))
-            else:
-                url = lower_url
-
+            #logger.info("Pull records up from {layer} layer".format(layer=self.model.get_lower_layer()))
             try:
-                adaptor_list = ci.get_all_from_url(url, object_type=self.model.object_type)
-            except MailmanConnectionError as e:
-                logger.info("Exception - {0}".format(e))
+                endpoint = ci.get_api_endpoint(object_type=self.model.object_type)
+            except ValueError:
                 adaptor_list = []
+            else:
+                params, endpoint = sanitize_query_and_endpoint(object_type=self.model.object_type,
+                                                               endpoint=endpoint, **kwargs)
+                lower_url = urljoin('{0}/3.0/'.format(settings.MAILMAN_API_URL),
+                                    '{0}'.format(endpoint))
+                if params:
+                    url = urljoin(lower_url, '?{params}'.format(params=params))
+                else:
+                    url = lower_url
+                try:
+                    adaptor_list = ci.get_all_from_url(url, object_type=self.model.object_type)
+                except MailmanConnectionError as e:
+                    logger.info("Exception - {0}".format(e))
+                    adaptor_list = []
 
             if len(adaptor_list) == 0:
                 return EmptyQuerySet(model=self.model)

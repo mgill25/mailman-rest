@@ -299,7 +299,10 @@ class CoreInterface(object):
         if object_type == 'email':
             endpoint = 'addresses'
         elif object_type == 'listsettings':
-            endpoint = 'lists/{0}/config'.format(kwargs.get('fqdn_listname'))
+            listname = kwargs.get('fqdn_listname')
+            if listname is None:
+                raise ValueError("No listname provided")
+            endpoint = 'lists/{0}/config'.format(listname)
         elif object_type == 'mailinglist':
             endpoint = 'lists'
         elif object_type == 'membership':
