@@ -312,7 +312,8 @@ class AbstractRemotelyBackedObject(AbstractObject):
             kwds.update(prepare_related_data(instance))
             try:
                 adaptor = ci.get_object(partial_url=instance.partial_URL, object_type=self.object_type, **kwds)
-            except HTTPError:
+            except HTTPError as e:
+                logger.info("Could not GET object: {0}".format(e))
                 return None
             return adaptor
 
@@ -324,8 +325,13 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 logger.debug("GET failed!")
                 logger.debug("Creating object...")
                 kwds = prepare_related_data(instance)
-                rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **kwds)
-                return rv_adaptor
+                try:
+                    rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **kwds)
+                except HTTPError as e:
+                    logger.info("Could not CREATE object - {0}".format(e))
+                    return None
+                else:
+                    return rv_adaptor
             else:
                 return res
 
@@ -341,8 +347,12 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 # >> Depends on the object_type
             else:
                 if instance.object_type not in disallow_updates:
-                    ci.update_object(object_type=self.object_type,
-                            partial_url=instance.partial_URL, data=backing_data)
+                    try:
+                        ci.update_object(object_type=self.object_type,
+                                        partial_url=instance.partial_URL,
+                                        data=backing_data)
+                    except HTTPError as e:
+                        logger.info("Could not PATCH object: {0}".format(e))
 
         # Handle post_save
         logger.info('Post_save {object_type} in {layer} layer'.format(
@@ -359,9 +369,12 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 if instance.partial_URL:
                     if instance.object_type not in disallow_updates:
                         logger.debug("partial_url: {0}".format(instance.partial_URL))
-                        ci.update_object(object_type=self.object_type,
-                                         partial_url=instance.partial_URL,
-                                         data=backing_data)
+                        try:
+                            ci.update_object(object_type=self.object_type,
+                                            partial_url=instance.partial_URL,
+                                            data=backing_data)
+                        except HTTPError as e:
+                            logger.info("Could not PATCH object: {0}".format(e))
                 else:
                     # No partial URL, object is to be completely backed up
                     backup_object(instance)
