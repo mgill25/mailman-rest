@@ -108,11 +108,11 @@ class MailingListViewSet(BaseModelViewSet):
     serializer_class = MailingListSerializer
     #filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
 
-    @link()
-    def settings(self, request, *args, **kwargs):
-        settings = self.get_object().settings
-        serializer = ListSettingsSerializer(settings)
-        return Response(serializer.data)
+    #@link()
+    #def settings(self, request, *args, **kwargs):
+    #    settings = self.get_object().settings
+    #    serializer = ListSettingsSerializer(settings)
+    #    return Response(serializer.data)
 
     def get_queryset(self):
         #XXX: not working
