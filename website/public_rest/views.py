@@ -78,9 +78,7 @@ class EmailViewSet(BaseModelViewSet):
     queryset = Email.objects.all()
     serializer_class = EmailSerializer
     filter_fields = ('user', 'address', 'verified',)
-    permission_classes = [IsValidOwnerPermission,
-                          IsValidModeratorPermission,
-                          IsAdminUser]
+    permission_classes = [IsAdminUser]
 
     def get_queryset(self):
         queryset = self.queryset
