@@ -159,16 +159,23 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                                 try:
                                     related_record = related_model.objects.get(partial_URL=partial_URL)
                                 except related_model.DoesNotExist:
-                                    raise ValueError("Related record does not exist!")
+                                    pass
+                                    #raise ValueError("Related record does not exist!")
                                 except FieldError:
                                     raise ValueError("partial_URL doesn't exist, the field is not remotely backed up.")
                                 except:
                                     logger.debug("+  Exception raised")
                                     raise
 
-                                kwds = { field : getattr(field_val, field) }
+                                logger.debug("field: {0}, {1}".format(field, type(field)))
+                                logger.debug("field_val: {0}, {1}".format(field_val, type(field_val)))
+
+                                lookup_field = getattr(field_val, 'reverse_lookup_field')
+                                kwds = { lookup_field : getattr(field_val, lookup_field) }
+
                                 logger.debug("\tCreating {0} from {1}".format(field, kwds))
                                 logger.debug("\tConverting {0}".format(getattr(self.model, field).field.rel.to.objects))
+
                                 related_record = getattr(self.model, field).field.rel.to.objects.get(**kwds)
                                 related_record.save()
                                 setattr(m, field, related_record)

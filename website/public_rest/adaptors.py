@@ -195,6 +195,10 @@ class UserAdaptor(BaseAdaptor):
         self._preferences = None
         self._cleartext_password = None
 
+    @property
+    def reverse_lookup_field(self):
+        return 'display_name'
+
     def __repr__(self):
         return '<UserAdaptor "{0}" ({1})>'.format(
             self.display_name, self.user_id)
