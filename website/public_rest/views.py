@@ -131,13 +131,13 @@ class MailingListViewSet(BaseModelViewSet):
         self.queryset = queryset
         return super(MailingListViewSet, self).get_queryset()
 
-    def list(self, request):
-        """Don't list memberships in the list view"""
-        queryset = self.queryset
-        serializer = MailingListDetailSerializer(queryset,
-                many=True,
-                context={'request': request})
-        return Response(serializer.data)
+    #def list(self, request):
+    #    """Don't list memberships in the list view"""
+    #    queryset = self.queryset
+    #    serializer = MailingListDetailSerializer(queryset,
+    #            many=True,
+    #            context={'request': request})
+    #    return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         """Memberships are listed here in detail view"""

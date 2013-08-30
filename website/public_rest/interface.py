@@ -81,8 +81,8 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
     FILTER_IGNORE_FIELDS = ['url', ]
 
     def filter(self, *args, **kwargs):
-        #logger.info("Processing {0} Remote filter!".format(self.model.layer))
-        #logger.info("Kwargs: {0}".format(kwargs))
+        logger.info("Processing {0} Remote filter!".format(self.model.layer))
+        logger.info("Kwargs: {0}".format(kwargs))
 
         def sanitize_query_and_endpoint(object_type, endpoint, **kwargs):
             """
