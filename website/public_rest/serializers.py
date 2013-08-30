@@ -16,10 +16,6 @@ class _PartialMailingListSerializer(serializers.HyperlinkedModelSerializer):
         model = MailingList
         fields = ('url', 'fqdn_listname')
 
-class ListPaginatorSerializer(serializers.Serializer):
-    next = pagination.NextPageField(source='*')
-    prev = pagination.PreviousPageField(source='*')
-
 
 #################################################################
 # Primary Model Serializers
@@ -49,9 +45,6 @@ class MembershipSerializer(serializers.HyperlinkedModelSerializer):
 
 class MailingListSerializer(serializers.HyperlinkedModelSerializer):
 
-    total_results = serializers.Field(source='paginator.count')
-    results_field = 'objects'
-
     #XXX: mail_host should only be writable at creation time.
     # Read-only
     members = serializers.Field('members')
@@ -67,7 +60,8 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = MailingList
         fields = ('url', 'fqdn_listname', 'list_name', 'mail_host',
-                'membership_set', 'settings',
+                #'membership_set',
+                'settings',
                 #'membership_listing',
                 #'members', 'owners', 'moderators',
                 )

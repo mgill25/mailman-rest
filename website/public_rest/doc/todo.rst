@@ -10,3 +10,7 @@ TODO
 
 3. Iterating over fields in an adaptor while creating images (in the process of
    pulling things up) -- inside `filter`.
+
+4. Views of `Memberships` filtered by `List` and `Role`. Consider writing
+   separate serializers `ListOwnerSerializer`, `ListModeratorSerializer`, and
+   `ListSubscriberSerializer` for that.

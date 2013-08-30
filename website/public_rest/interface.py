@@ -13,7 +13,6 @@ from urllib import urlencode
 from urllib2 import HTTPError
 
 from django.conf import settings
-from django.core.exceptions import FieldError
 from django.db import models
 from django.db.models.query import QuerySet, EmptyQuerySet
 from model_utils.managers import PassThroughManager
@@ -143,45 +142,20 @@ class RemoteObjectQuerySet(LayeredModelQuerySet):
                     for field in record:
                         if not field in self.FILTER_IGNORE_FIELDS:
                             field_val = getattr(record, field)
-                            logger.debug("record field: {0} --- {1}".format(field, field_val))
+                            logger.debug("field: {0}, {1}".format(field, type(field)))
+                            logger.debug("field_val: {0}, {1}".format(field_val, type(field_val)))
                             try:
                                 setattr(m, field, field_val)
                             except ValueError:
-                                # the field is possibly a ForeignKey
                                 related_model = getattr(self.model, field).field.rel.to.objects.model
                                 logger.info("====Related Model: {0}====".format(related_model))
-
                                 try:
-                                    partial_URL = urlsplit(field_val).path
-                                except AttributeError:
-                                    partial_URL = urlsplit(field_val.url).path
-
-                                try:
-                                    related_record = related_model.objects.get(partial_URL=partial_URL)
-                                except related_model.DoesNotExist:
-                                    pass
-                                    #raise ValueError("Related record does not exist!")
-                                except FieldError:
-                                    raise ValueError("partial_URL doesn't exist, the field is not remotely backed up.")
-                                except:
-                                    logger.debug("+  Exception raised")
-                                    raise
-
-                                logger.debug("field: {0}, {1}".format(field, type(field)))
-                                logger.debug("field_val: {0}, {1}".format(field_val, type(field_val)))
-
-                                lookup_field = getattr(field_val, 'reverse_lookup_field')
-                                kwds = { lookup_field : getattr(field_val, lookup_field) }
-
-                                logger.debug("\tCreating {0} from {1}".format(field, kwds))
-                                logger.debug("\tConverting {0}".format(getattr(self.model, field).field.rel.to.objects))
-
-                                related_record = getattr(self.model, field).field.rel.to.objects.get(**kwds)
-                                related_record.save()
-                                setattr(m, field, related_record)
-                                field_val = related_record
-                    logger.debug("About to save record m: {0}".format(m))
+                                    related_record = ci.create_model_from_adaptor(related_model, field_val)
+                                    setattr(m, field, related_record)
+                                except Exception as e:
+                                    logger.debug("===Exception=== {0}".format(e))
                     m.save()
+                    logger.debug("Saved record m: {0}".format(m))
                 return super(RemoteObjectQuerySet, self).filter(*args, **kwargs)
             else:
                 return EmptyQuerySet(model=self.model)

@@ -5,6 +5,7 @@ from operator import itemgetter
 from urlparse import urljoin, urlsplit
 
 from django.conf import settings
+from django.core.exceptions import FieldError
 from django.db.models.loading import get_model
 
 from public_rest.adaptors import *
@@ -369,3 +370,47 @@ class CoreInterface(object):
         else:
             response, content = self.connection.call(partial_url, data=data, method='PATCH')
         return adaptor
+
+    def create_model_from_adaptor(self, model, adaptor):
+        """
+        Given an adaptor instance, create a model instance,
+        saving as much information as possible.
+
+        Not saving the model's foreignkey objects for now.
+        """
+
+        adaptor_url = urlsplit(getattr(adaptor, 'url')).path
+        lookup_field = 'partial_URL'
+        lookup_value = adaptor_url
+
+        try:
+            kwds = {lookup_field: lookup_value}
+            logger.debug("Inside create_model_from_adaptor")
+            logger.debug("kwds: {0}".format(kwds))
+            instance = model.objects.get(**kwds)
+            logger.debug("instance is {0}".format(instance))
+        except FieldError:
+            logger.info("partial_URL doesn't exist, the field is not remotely backed up.")
+            return None
+        except model.DoesNotExist:
+            logger.debug("Creating a new one!")
+            instance = model()
+
+        # New or old, we update the instance
+        instance.partial_URL = adaptor_url
+        for local_field, remote_field in model.fields:
+            logger.debug("local: {0}; remote: {1}".format(local_field, remote_field))
+            field_val = getattr(adaptor, remote_field, None)
+            if field_val is None:
+                field_val = getattr(adaptor, local_field, None)
+            if field_val is not None:
+                if len(local_field.split('.')) == 1:
+                    setattr(instance, local_field, field_val)
+                else:
+                    logger.debug("ForeignKey Passssssssssssss")
+                    # ForeignKey
+                    pass
+
+        instance.save()
+        logger.debug("instance after save: {0}".format(instance))
+        return instance
