@@ -40,6 +40,24 @@ class UserViewSet(BaseModelViewSet):
             queryset = queryset.filter(email__address=email)
         return queryset
 
+    def create(self, request):
+        display_name = request.DATA.get('display_name')
+        email = request.DATA.get('email')
+        password = request.DATA.get('password')
+
+        if not display_name or not email or not password:
+            return Response(data='Incomplete data', status=400)
+
+        try:
+            user = User.objects.get(display_name=display_name)
+            if user:
+                return Response(data='Already Exists', status=400)
+            #TODO: Handle email-already-exists
+        except User.DoesNotExist:
+            user = User.objects.create(display_name=display_name, email=email, password=password)
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data, status=201)
+
 
 class EmailViewSet(BaseModelViewSet):
     queryset = Email.objects.all()
