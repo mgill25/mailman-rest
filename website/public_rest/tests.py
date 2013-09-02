@@ -39,8 +39,6 @@ class ModelTest(TestCase):
         # Stop -core
         stop_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','stop_mailman'))
         os.system(stop_command)
-        var_dir = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..', 'var'))
-        shutil.rmtree(var_dir, True)
 
     def setUp(self):
         """
