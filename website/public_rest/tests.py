@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
-
-Replace this with more appropriate tests for your application.
+Run these tests with "manage.py test".
 """
 
 from django.contrib.auth import get_user_model
@@ -14,27 +11,36 @@ from django.test.client import Client
 
 from public_rest.models import *
 
+from django.conf import settings
+from public_rest.api import CoreInterface
+import os
+import shutil
+
 setup_test_environment()
-
-class SimpleTest(TestCase):
-    def test_basic_addition(self):
-        """
-        Tests that 1 + 1 always equals 2.
-        """
-        self.assertEqual(1 + 1, 2)
-
 
 class ModelTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
         """Setup a fresh copy of the Mailman core database."""
-        pass
-
+        # If -core is running, stop it
+        try:
+            stop_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','stop_mailman'))
+            os.system(stop_command)
+        except:
+            pass
+        # Start a new copy of -core
+        start_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','start_mailman'))
+        os.system(start_command)
+        
     @classmethod
     def tearDownClass(cls):
         """Remove the Mailman core database after tests are complete."""
-        pass
+        # Stop -core
+        stop_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','stop_mailman'))
+        os.system(stop_command)
+        var_dir = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..', 'var'))
+        shutil.rmtree(var_dir, True)
 
     def setUp(self):
         """
