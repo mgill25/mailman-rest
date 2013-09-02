@@ -79,7 +79,6 @@ class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
         exclude = ('partial_URL', 'id', 'http_etag', 'acceptablealias')
 
 
-
 class DomainSerializer(serializers.HyperlinkedModelSerializer):
     #mailinglist_listing = serializers.HyperlinkedIdentityField(view_name='mailinglist-list')
     mailinglist_set = _PartialMailingListSerializer(many=True)

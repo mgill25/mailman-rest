@@ -690,7 +690,7 @@ class MembershipAdaptor(BaseAdaptor):
     @property
     def partial_url(self):
         url = self.url
-        return urlsplit(url).path.split('3.0/')[1]
+        return urlsplit(url).path
 
     @property
     def list_id(self):
