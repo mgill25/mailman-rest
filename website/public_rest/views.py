@@ -93,9 +93,9 @@ class MembershipViewSet(BaseModelViewSet):
 
     def create(self, request):
         """Membership creation"""
-        role = request.POST['role']
-        list_name = request.POST['mlist']
-        address = request.POST['address']
+        role = request.DATA.get('role')
+        list_name = request.get('mlist')
+        address = request.DATA.get('address')
 
         try:
             mlist = MailingList.objects.get(fqdn_listname=list_name)
@@ -168,13 +168,19 @@ class MailingListViewSet(BaseModelViewSet):
     def create(self, request):
         """
         Create a new MailingList on the domain
-        provided in POST parameters.
+        provided in POST (DATA) parameters.
         """
+        mail_host = request.DATA.get('mail_host')
+        list_name = request.DATA.get('list_name')
+        if not mail_host or not list_name:
+            return Response('Incomplete data', status=400)
+
         try:
-            domain = Domain.objects.get(mail_host=request.POST['mail_host'])
+            domain = Domain.objects.get(mail_host=mail_host)
         except Domain.DoesNotExist:
             return Response(data='Domain not found', status=404)
-        mlist = domain.create_list(request.POST['list_name'])
+
+        mlist = domain.create_list(request.DATA['list_name'])
         serializer = MailingListSerializer(mlist,
                 context={'request': request})
         return Response(serializer.data, status=201)
