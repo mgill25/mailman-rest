@@ -29,6 +29,21 @@ class UserViewSet(BaseModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    @action(methods=['POST', 'GET'])
+    def emails(self, request, *args, **kwargs):
+        user = self.get_object()
+
+        if request.method == 'POST':
+            email = user.add_email(request.DATA.get('address'))
+            if email:
+                serializer = EmailSerializer(email, context={'request': request})
+                return Response(serializer.data, status=201)
+        elif request.method == 'GET':
+            serializer = EmailSerializer(user.emails,
+                                        many=True,
+                                        context={'request': request})
+            return Response(serializer.data, status=200)
+
     def get_queryset(self):
         queryset = self.queryset
         display_name = self.request.QUERY_PARAMS.get('display_name', None)
@@ -72,6 +87,7 @@ class EmailViewSet(BaseModelViewSet):
         address = self.request.QUERY_PARAMS.get('address', None)
         user = self.request.QUERY_PARAMS.get('user', None)
         verified = self.request.QUERY_PARAMS.get('verified', None)
+
         if address is not None:
             queryset = queryset.filter(address=address)
         if verified is not None:
