@@ -32,7 +32,7 @@ class ModelTest(TestCase):
         # Start a new copy of -core
         start_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','start_mailman'))
         os.system(start_command)
-        
+
     @classmethod
     def tearDownClass(cls):
         """Remove the Mailman core database after tests are complete."""
@@ -46,21 +46,28 @@ class ModelTest(TestCase):
         """
         For *every* test, we need at least a User object.
         """
+        # Create a user
         u = get_user_model().objects.create(display_name='Test Admin',
                                             email='admin@test.com',
                                             password='password')
-        u.save()
+        # Create a domain
+        d = Domain.objects.create(base_url='example.com', mail_host='mail.example.com',
+                description='An example domain', contact_address='admin@example.com')
         super(ModelTest, self).setUp()
 
     def tearDown(self):
+        # delete user
         admin_user = User.objects.get(display_name='Test Admin')
         admin_user.delete()
+        # delete domain
+        d = Domain.objects.get(mail_host='mail.example.com')
+        d.delete()
 
     def setup_list(self):
         """
         Create a mock domain, list and a user.
         """
-        domain = Domain.objects.create(base_url='example.com', mail_host='mail.example.com')
+        domain = Domain.objects.get(mail_host='mail.example.com')
         mlist = domain.create_list('test')
         return domain, mlist
 
@@ -77,8 +84,7 @@ class ModelTest(TestCase):
         return sub
 
     def test_domain(self):
-        d = Domain.objects.create(base_url='example.com', mail_host='mail.example.com',
-                description='An example domain', contact_address='admin@example.com')
+        d = Domain.objects.get(mail_host='mail.example.com')
         self.assertEqual(d.base_url, 'example.com')
         self.assertEqual(d.mail_host, 'mail.example.com')
         self.assertEqual(d.description, 'An example domain')
