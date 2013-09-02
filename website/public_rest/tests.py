@@ -14,7 +14,8 @@ from public_rest.models import *
 from django.conf import settings
 from public_rest.api import CoreInterface
 import os
-import shutil
+
+import time
 
 setup_test_environment()
 
@@ -32,6 +33,20 @@ class ModelTest(TestCase):
         # Start a new copy of -core
         start_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','start_mailman'))
         os.system(start_command)
+        time.sleep(2)
+        # Give it some time to start
+        core = Connection()
+        tries = 1
+        while tries > 0:
+            try:
+                core.call('system')
+                print ('tries = {0}'.format(tries))
+                tries = -1
+            except MailmanConnectionError:
+                tries = tries +1
+                time.sleep(1)
+                if tries > 15:
+                    raise Exception('Mailman-core failed to start')
 
     @classmethod
     def tearDownClass(cls):
