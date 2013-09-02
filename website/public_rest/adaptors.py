@@ -10,6 +10,7 @@ from urllib import urlencode
 from urllib2 import HTTPError
 from urlparse import urljoin, urlsplit
 
+from django.conf import settings
 from django.db import models
 
 
@@ -626,7 +627,8 @@ class SettingsAdaptor(BaseAdaptor):
     def url(self):
         self._get_info()
         fqdn_listname = self._info['fqdn_listname']
-        return 'lists/{0}/config'.format(fqdn_listname)
+        return '{0}/3.0/lists/{0}/config'.format(
+                settings.MAILMAN_API_URL, fqdn_listname)
 
     def __iter__(self):
         for key in self._info.keys():
