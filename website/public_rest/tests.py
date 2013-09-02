@@ -119,6 +119,7 @@ class ModelTest(TestCase):
         self.assertEqual(mlist.fqdn_listname, 'test@mail.example.com')
         self.assertEqual(mlist.domain, d)
         self.assertEqual(mlist.owners.count(), 0)
+        #### TODO: The User for the next address has not been created yet
         mlist.subscribe('a@example.com')
         self.assertTrue('a@example.com' in [email.address for email in mlist.members])
         mlist.add_owner('batman@gotham.com')
