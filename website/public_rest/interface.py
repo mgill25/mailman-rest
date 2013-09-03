@@ -275,9 +275,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
                 if isinstance(field_val, AbstractRemotelyBackedObject):
                     if field_val.partial_URL:
                         related_url = urljoin(settings.MAILMAN_API_URL, field_val.partial_URL)
-                    else:
-                        raise Exception('Related Object not Available')
-                    field_val = related_url
+                        field_val = related_url
                 backing_data[remote_field_name] = field_val
             return backing_data
 
