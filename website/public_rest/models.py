@@ -592,7 +592,8 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
             self.preferences = MembershipPrefs()
             self.preferences.save()
             super(Membership, self).save(*args, **kwargs)
-        super(Membership, self).save(*args, **kwargs)
+        else:
+            super(Membership, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return '{0} on {1}'.format(self.address, self.mlist.fqdn_listname)
