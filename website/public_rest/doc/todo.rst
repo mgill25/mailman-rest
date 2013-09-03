@@ -14,3 +14,7 @@ TODO
 4. Views of `Memberships` filtered by `List` and `Role`. Consider writing
    separate serializers `ListOwnerSerializer`, `ListModeratorSerializer`, and
    `ListSubscriberSerializer` for that.
+
+5. `Preferences` for Users, Emails, Memberships etc. don't need to be "backed up"
+   for the first time, since they are at their default values at both levels
+   anyway.
