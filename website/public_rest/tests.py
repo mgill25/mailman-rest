@@ -64,8 +64,10 @@ class ModelTest(TestCase):
                                             email='admin@test.com',
                                             password='password')
         # Create a domain
-        d = Domain.objects.create(base_url='example.com', mail_host='mail.example.com',
-                description='An example domain', contact_address='admin@example.com')
+        d = Domain.objects.create(base_url='example.com',
+                                  mail_host='mail.example.com',
+                                  description='An example domain',
+                                  contact_address='admin@example.com')
         super(ModelTest, self).setUp()
 
     def tearDown(self):
@@ -75,6 +77,7 @@ class ModelTest(TestCase):
         # delete domain
         d = Domain.objects.get(mail_host='mail.example.com')
         d.delete()
+        super(ModelTest, self).tearDown()
 
     def setup_list(self):
         """
@@ -121,29 +124,31 @@ class ModelTest(TestCase):
         self.assertEqual(mlist.owners.count(), 0)
         #### TODO: The User for the next address has not been created yet
         mlist.subscribe('a@example.com')
-        self.assertTrue('a@example.com' in [email.address for email in mlist.members])
+        self.assertTrue('a@example.com' in [email.address.address for email in mlist.members])
         mlist.add_owner('batman@gotham.com')
-        self.assertTrue('batman@gotham.com' in [email.address for email in mlist.owners])
+        self.assertTrue('batman@gotham.com' in [email.address.address for email in mlist.owners])
         mlist.add_moderator('superman@metropolis.com')
-        self.assertTrue('superman@metropolis.com' in [email.address for email in mlist.moderators])
+        self.assertTrue('superman@metropolis.com' in [email.address.address for email in mlist.moderators])
         # also present in all_subscribers
-        self.assertTrue('a@example.com' in [email.address for email in mlist.all_subscribers])
-        self.assertTrue('batman@gotham.com' in [email.address for email in mlist.all_subscribers])
-        self.assertTrue('superman@metropolis.com' in [email.address for email in mlist.all_subscribers])
+        self.assertTrue('a@example.com' in [email.address.address for email in mlist.all_subscribers])
+        self.assertTrue('batman@gotham.com' in [email.address.address for email in mlist.all_subscribers])
+        self.assertTrue('superman@metropolis.com' in [email.address.address for email in mlist.all_subscribers])
 
-    '''
+
     def test_user(self):
-        u = get_user_model().objects.create()
-        self.assertEqual(u.emails.count(), 0)
-        u_mail = u.add_email('hello@goodbye.com')
+        u = get_user_model().objects.create(display_name='testuser',
+                                            email='test@user.com',
+                                            password='hellogoodbye')
         self.assertEqual(u.emails.count(), 1)
+        u_mail = u.add_email('hello@goodbye.com')
+        self.assertEqual(u.emails.count(), 2)
         with self.assertRaises(ValueError):
             self.assertIsNone(u.add_email('hello@goodbye.com'))   # Can't add the same address twice.
-            self.assertEqual(u.emails.count(), 1)                 # so no new email
-        #self.assertEqual(u.get_email('hello@goodbye.com'), u_mail)
+            self.assertEqual(u.emails.count(), 2)                 # so no new email
+        self.assertEqual(u.get_email('hello@goodbye.com'), u_mail)
         u.set_password('foobar')
         self.assertTrue(u.check_password('foobar'))
-    '''
+
 
     def test_subscriber_creation(self):
         domain, mlist = self.setup_list()

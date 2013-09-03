@@ -270,13 +270,14 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         try:
             u = get_user_model().objects.get(email__address=address)
         except get_user_model().DoesNotExist as e:
-            # The user does not exist, create one, using email as the display_name
-            u = get_user_model()(display_name=address)
+            # The user does not exist, create one, using email as display_name.
+            password = User.objects.make_random_password()
+            u = get_user_model().objects.create(display_name=address,
+                                                email=address,
+                                                password=password)
             u.save()
-            e = Email(address=address, user=u)
-            e.save()
         # Make a subscription relationship
-        s = self.membership_set.create(user=u, address=address, role=role)
+        s = self.membership_set.create(user=u, address=u.preferred_email, role=role)
         return s
 
     def unsubscribe(self, address):
@@ -471,9 +472,9 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
 
     def save(self, *args, **kwargs):
         if self.pk is None:
-                super(AbstractUser, self).save(*args, **kwargs)
-                self.preferences = UserPrefs()
-                self.preferences.save()
+            super(AbstractUser, self).save(*args, **kwargs)
+            self.preferences = UserPrefs()
+            self.preferences.save()
         else:
             super(AbstractUser, self).save(*args, **kwargs)
 
@@ -591,7 +592,6 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
             super(Membership, self).save(*args, **kwargs)
             self.preferences = MembershipPrefs()
             self.preferences.save()
-            super(Membership, self).save(*args, **kwargs)
         else:
             super(Membership, self).save(*args, **kwargs)
 

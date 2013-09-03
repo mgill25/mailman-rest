@@ -312,7 +312,7 @@ class CoreInterface(object):
         elif object_type == 'preferences':
             model = self.get_model_from_object('membership')
             instance = model.objects.get(address=kwargs['address'],
-                                                mlist__fqdn_listname=kwargs['list_id'])
+                                         mlist__fqdn_listname=kwargs['list_id'])
             partial_url = instance.partial_URL
             endpoint = '{0}/preferences'.format(partial_url)
         elif object_type == 'user':
