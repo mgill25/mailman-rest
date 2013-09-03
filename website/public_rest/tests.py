@@ -198,6 +198,8 @@ class ModelTest(TestCase):
         user = User.objects.get(display_name='Test Admin')
         sub = self.create_subscription(user, mlist, 'member')
         prefs = sub.preferences
+        self.assertIsNotNone(prefs)
+        self.assertIsInstance(prefs, MembershipPrefs)
         self.assertIsNone(prefs['receive_list_copy'])
         self.assertIsNone(prefs['acknowledge_posts'])
         self.assertIsNone(prefs['receive_list_copy'])

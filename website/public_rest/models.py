@@ -488,7 +488,7 @@ class User(AbstractUser, AbstractRemotelyBackedObject):
     adaptor = UserAdaptor
 
 
-class BasePrefs(BaseModel, AbstractRemotelyBackedObject):
+class BasePrefs(BaseModel, AbstractRemotelyBackedDefault):
 
     class Meta:
         abstract = True

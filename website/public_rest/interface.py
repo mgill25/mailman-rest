@@ -235,10 +235,113 @@ class AbstractLocallyBackedObject(AbstractObject):
 class AbstractRemotelyBackedObject(AbstractObject):
     partial_URL = models.CharField(max_length=100, blank=True, null=True)
 
+    # TODO: Properly handle disallowed methods for objects
+    disallow_updates = ['domain',
+                        'mailinglist',
+                        'membership',
+                        'preferences']   # You can PATCH `deliver_mode` on membership preferences.
+
     class Meta:
         abstract = True
 
     objects = RemoteManager()
+
+    def prepare_related_data(self):
+        """Prepare data that would be used for looking
+        up objects remotely."""
+        data = {}
+        if self.object_type == 'membership':
+            data['list_id'] = self.mlist.fqdn_listname
+        if self.object_type == 'listsettings':
+            data['fqdn_listname'] = self.fqdn_listname
+        if self.object_type == 'preferences':
+            data['address'] = self.membership.address.address
+            data['list_id'] = self.membership.fqdn_listname
+        if self.object_type == 'user':
+            data['email'] = self.preferred_email.address
+        return data
+
+    def prepare_backing_data(self):
+        """Prepare data for backing layer"""
+        # Local fields could have different name at remote
+        backing_data = {}
+        for local_field_name, remote_field_name in self.fields:
+            field_val = get_related_attribute(self, local_field_name)
+            if isinstance(field_val, AbstractRemotelyBackedObject):
+                if field_val.partial_URL:
+                    related_url = urljoin(settings.MAILMAN_API_URL, field_val.partial_URL)
+                    field_val = related_url
+            backing_data[remote_field_name] = field_val
+        return backing_data
+
+    def get_object(self):
+        """Returns the ObjectAdaptor. """
+        object_model = self.__class__
+        field_key = getattr(self, 'lookup_field', None)
+        if not field_key:
+            kwds = {}
+        else:
+            kwds = { field_key : getattr(self, field_key, None) }
+        kwds.update(self.prepare_related_data())
+        try:
+            adaptor = ci.get_object(partial_url=self.partial_URL, object_type=self.object_type, **kwds)
+        except HTTPError as e:
+            logger.info("Could not GET object: {0}".format(e))
+            return None
+        return adaptor
+
+    def get_or_create_object(self, data=None):
+        object_model = self.__class__
+        res = self.get_object()
+        if not res:
+            # Push the object on the backer via the REST API.
+            logger.debug("GET failed!")
+            logger.debug("Creating object...")
+            kwds = self.prepare_related_data()
+            try:
+                rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **kwds)
+            except HTTPError as e:
+                logger.info("Could not CREATE object - {0}".format(e))
+                return None
+            else:
+                return rv_adaptor
+        else:
+            return res
+
+    def create_backup(self, backing_data):
+        logger.debug("data: {0}".format(backing_data))
+        res = self.get_or_create_object(data=backing_data)
+        if res:
+            logger.debug("result: {0}, {1}".format(res, type(res)))
+            # Create a peer thing and associate the url with it.
+            self.partial_URL = urlsplit(res.url).path
+            self.save()
+            # Update the information at the back with new data.
+            # >> Depends on the object_type
+        else:
+            if self.object_type not in disallow_updates:
+                try:
+                    ci.update_object(object_type=self.object_type,
+                                    partial_url=self.partial_URL,
+                                    data=backing_data)
+                except HTTPError as e:
+                    logger.info("Could not PATCH object: {0}".format(e))
+
+    def patch_backup(self, backing_data):
+        # PATCH the fields in back.
+        logger.info("Trying to PATCH object...")
+        if self.partial_URL:
+            if self.object_type not in self.disallow_updates:
+                logger.debug("partial_url: {0}".format(self.partial_URL))
+                try:
+                    ci.update_object(object_type=self.object_type,
+                                    partial_url=self.partial_URL,
+                                    data=backing_data)
+                except HTTPError as e:
+                    logger.info("Could not PATCH object: {0}".format(e))
+        else:
+            # No partial URL, object is to be completely backed up
+            self.create_backup(backing_data)
 
     def process_on_save_signal(self, sender, **kwargs):
         """
@@ -247,115 +350,31 @@ class AbstractRemotelyBackedObject(AbstractObject):
         """
         logger.info("Inside AbstractRemotelyBackedObject!")
 
-        # TODO: Properly handle disallowed methods for objects
-        disallow_updates = ['domain', 'mailinglist', 'membership',
-                            'preferences']   # You can PATCH `deliver_mode` on membership preferences.
-
-        def prepare_related_data(instance):
-            """Prepare data that would be used for looking
-            up objects remotely."""
-            data = {}
-            if self.object_type == 'membership':
-                data['list_id'] = self.mlist.fqdn_listname
-            if self.object_type == 'listsettings':
-                data['fqdn_listname'] = self.fqdn_listname
-            if self.object_type == 'preferences':
-                data['address'] = self.membership.address.address
-                data['list_id'] = self.membership.fqdn_listname
-            if self.object_type == 'user':
-                data['email'] = self.preferred_email.address
-            return data
-
-        def prepare_backing_data(instance):
-            """Prepare data for backing layer"""
-            # Local fields could have different name at remote
-            backing_data = {}
-            for local_field_name, remote_field_name in instance.fields:
-                field_val = get_related_attribute(instance, local_field_name)
-                if isinstance(field_val, AbstractRemotelyBackedObject):
-                    if field_val.partial_URL:
-                        related_url = urljoin(settings.MAILMAN_API_URL, field_val.partial_URL)
-                        field_val = related_url
-                backing_data[remote_field_name] = field_val
-            return backing_data
-
-        def get_object(instance):
-            """Returns the ObjectAdaptor. """
-            object_model = instance.__class__
-            field_key = getattr(instance, 'lookup_field', None)
-            if not field_key:
-                kwds = {}
-            else:
-                kwds = { field_key : getattr(instance, field_key, None) }
-            kwds.update(prepare_related_data(instance))
-            try:
-                adaptor = ci.get_object(partial_url=instance.partial_URL, object_type=self.object_type, **kwds)
-            except HTTPError as e:
-                logger.info("Could not GET object: {0}".format(e))
-                return None
-            return adaptor
-
-        def get_or_create_object(instance, data=None):
-            object_model = instance.__class__
-            res = get_object(instance)
-            if not res:
-                # Push the object on the backer via the REST API.
-                logger.debug("GET failed!")
-                logger.debug("Creating object...")
-                kwds = prepare_related_data(instance)
-                try:
-                    rv_adaptor = ci.create_object(object_type=self.object_type, data=data, **kwds)
-                except HTTPError as e:
-                    logger.info("Could not CREATE object - {0}".format(e))
-                    return None
-                else:
-                    return rv_adaptor
-            else:
-                return res
-
-        def backup_object(instance):
-            logger.debug("data: {0}".format(backing_data))
-            res = get_or_create_object(instance, data=backing_data)
-            if res:
-                logger.debug("result: {0}, {1}".format(res, type(res)))
-                # Create a peer thing and associate the url with it.
-                instance.partial_URL = urlsplit(res.url).path
-                instance.save()
-                # Update the information at the back with new data.
-                # >> Depends on the object_type
-            else:
-                if instance.object_type not in disallow_updates:
-                    try:
-                        ci.update_object(object_type=self.object_type,
-                                        partial_url=instance.partial_URL,
-                                        data=backing_data)
-                    except HTTPError as e:
-                        logger.info("Could not PATCH object: {0}".format(e))
-
-        # Handle post_save
-        logger.info('Post_save {object_type} in {layer} layer'.format(
-            layer=self.layer, object_type=self.object_type))
-
-        instance = kwargs['instance']
-        backing_data = prepare_backing_data(instance)
+        backing_data = self.prepare_backing_data()
         # handle object get/create
         try:
             if kwargs.get('created'):
-                backup_object(instance)
+                self.create_backup(backing_data)
             else:
-                # PATCH the fields in back.
-                if instance.partial_URL:
-                    if instance.object_type not in disallow_updates:
-                        logger.debug("partial_url: {0}".format(instance.partial_URL))
-                        try:
-                            ci.update_object(object_type=self.object_type,
-                                            partial_url=instance.partial_URL,
-                                            data=backing_data)
-                        except HTTPError as e:
-                            logger.info("Could not PATCH object: {0}".format(e))
-                else:
-                    # No partial URL, object is to be completely backed up
-                    backup_object(instance)
+                self.patch_backup(backing_data)
             super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
         except MailmanConnectionError as e:
             logger.info("Could not back up properly: {0}".format(e))
+
+
+class AbstractRemotelyBackedDefault(AbstractRemotelyBackedObject):
+    class Meta:
+        abstract = True
+
+    def process_on_save_signal(self, sender, **kwargs):
+        backing_data = self.prepare_backing_data()
+        try:
+            if kwargs.get('created'):
+                # Don't back up anything, we already have defaults.
+                pass
+            else:
+                self.patch_backup(backing_data)
+            super(AbstractRemotelyBackedDefault, self).process_on_save_signal(sender, **kwargs)
+        except MailmanConnectionError as e:
+            logger.info("Could not back up properly: {0}".format(e))
+
