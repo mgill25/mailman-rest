@@ -544,7 +544,7 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
     lookup_field = 'address'              #TODO: This has to be unique, but for memberships, email isn't.
 
     fields = [ ('user.display_name', 'user'),
-               ('mlist', 'list_id'),
+               ('mlist.fqdn_listname', 'list_id'),
                ('address.address', 'address'),
                ('role', 'role'),
             ]

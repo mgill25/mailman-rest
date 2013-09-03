@@ -329,7 +329,8 @@ class CoreInterface(object):
                 object_type == 'membership':
             rv = {}
             if data.has_key('list_id'):
-                rv['list_id'] = urlsplit(data['list_id']).path.split('lists/')[1]
+                list_id = data['list_id'].replace('@', '.')
+                rv['list_id'] = list_id
             if data.has_key('address'):
                 rv['subscriber'] = data['address']
             if data.has_key('fqdn_listname'):
