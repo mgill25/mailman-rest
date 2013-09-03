@@ -247,14 +247,6 @@ class CoreListMixin(models.Model):
 class LocalListMixin(models.Model):
     """Fields that are added by us, locally."""
 
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            # Create a new list at the given mail_host Domain
-            domain = interface.get_domain(mail_host=self.mail_host)
-            super(LocalListMixin, self).save(*args, **kwargs)
-        else:
-            super(LocalListMixin, self).save(*args, **kwargs)
-
     class Meta:
         abstract = True
 
