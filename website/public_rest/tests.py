@@ -91,6 +91,27 @@ class ModelTest(TestCase):
         u = User.objects.get(display_name='Test Admin')
         self.assertTrue(u.check_password('password'))
 
+    def test_user_preferences(self):
+        """A User should have preferences"""
+        user = User.objects.get(display_name='Test Admin')
+        prefs = user.preferences
+        self.assertIsNotNone(prefs)
+        self.assertIsInstance(prefs, UserPrefs)
+
+    def test_user_email_preferences(self):
+        """Test the email preferences related to the User"""
+        user = User.objects.get(display_name='Test Admin')
+        prefs = user.preferred_email.preferences
+        self.assertIsNotNone(prefs)
+        self.assertIsInstance(prefs, EmailPrefs)
+
+    def test_email_preferences(self):
+        """Test email preferences solo"""
+        email = Email.objects.create(address='eidolon@triumvirate.com')
+        prefs = email.preferences
+        self.assertIsNotNone(prefs)
+        self.assertIsInstance(prefs, EmailPrefs)
+
     def create_subscription(self, user, mlist, role='member'):
         """
         Associate the user and list with a subscription.
