@@ -87,6 +87,14 @@ class ModelTest(TestCase):
         mlist = domain.create_list('test')
         return domain, mlist
 
+    def create_subscription(self, user, mlist, role='member'):
+        """
+        Associate the user and list with a subscription.
+        """
+        email, created = Email.objects.get_or_create(address='admin@example.com')
+        sub = Membership.objects.create(user=user, mlist=mlist, address=email, role=role)
+        return sub
+
     def test_user_password(self):
         u = User.objects.get(display_name='Test Admin')
         self.assertTrue(u.check_password('password'))
@@ -112,13 +120,13 @@ class ModelTest(TestCase):
         self.assertIsNotNone(prefs)
         self.assertIsInstance(prefs, EmailPrefs)
 
-    def create_subscription(self, user, mlist, role='member'):
-        """
-        Associate the user and list with a subscription.
-        """
-        email, created = Email.objects.get_or_create(address='admin@example.com')
-        sub = Membership.objects.create(user=user, mlist=mlist, address=email, role=role)
-        return sub
+    def test_preferred_email(self):
+        u = User.objects.create(display_name='naeblis',
+                                email='pref@example.com',
+                                password='12345')
+        self.assertEqual(u.preferred_email.address, 'pref@example.com')
+        u.create_preferred_email(address='foo@bar.com')
+        self.assertEqual(u.preferred_email.address, 'foo@bar.com')
 
     def test_domain(self):
         d = Domain.objects.get(mail_host='mail.example.com')
@@ -155,7 +163,6 @@ class ModelTest(TestCase):
         self.assertTrue('batman@gotham.com' in [email.address.address for email in mlist.all_subscribers])
         self.assertTrue('superman@metropolis.com' in [email.address.address for email in mlist.all_subscribers])
 
-
     def test_user(self):
         u = get_user_model().objects.create(display_name='testuser',
                                             email='test@user.com',
@@ -169,7 +176,6 @@ class ModelTest(TestCase):
         self.assertEqual(u.get_email('hello@goodbye.com'), u_mail)
         u.set_password('foobar')
         self.assertTrue(u.check_password('foobar'))
-
 
     def test_subscriber_creation(self):
         domain, mlist = self.setup_list()
@@ -249,10 +255,3 @@ class ModelTest(TestCase):
         self.assertEqual(mset.web_host, '')
         self.assertEqual(mset.welcome_message_uri, 'mailman:///welcome.txt')
 
-    def test_preferred_email(self):
-        u = User.objects.create(display_name='naeblis',
-                                email='pref@example.com',
-                                password='12345')
-        self.assertEqual(u.preferred_email.address, 'pref@example.com')
-        u.create_preferred_email(address='foo@bar.com')
-        self.assertEqual(u.preferred_email.address, 'foo@bar.com')

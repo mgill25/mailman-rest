@@ -378,8 +378,9 @@ class Email(BaseModel):
     def save(self, *args, **kwargs):
         if self.pk is None:
             super(Email, self).save(*args, **kwargs)
-            self.preferences = EmailPrefs()
-            self.preferences.save()
+            preferences = EmailPrefs()
+            preferences.save()
+            self.preferences = preferences
         else:
             super(Email, self).save(*args, **kwargs)
 
@@ -473,8 +474,9 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     def save(self, *args, **kwargs):
         if self.pk is None:
             super(AbstractUser, self).save(*args, **kwargs)
-            self.preferences = UserPrefs()
-            self.preferences.save()
+            preferences = UserPrefs()
+            preferences.save()
+            self.preferences = preferences
         else:
             super(AbstractUser, self).save(*args, **kwargs)
 
