@@ -20,6 +20,6 @@ listsettings_detail = views.ListSettingsViewSet.as_view({
 # Additionally, we include login URLs for the browseable API.
 urlpatterns = patterns('',
     url(r'^api/', include(router.urls)),
-    url(r'^api/lists/(?P<pk>[0-9]+)/settings$', listsettings_detail, name='listsettings-detail'),
+    url(r'^api/lists/(?P<pk>[0-9]+)/settings/$', listsettings_detail, name='listsettings-detail'),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 )

@@ -15,6 +15,8 @@ from public_rest.models import *
 
 from django.conf import settings
 from public_rest.api import CoreInterface
+
+from urlparse import urlsplit
 import json
 import os
 import time
@@ -260,7 +262,6 @@ setup_test_environment()
 #        self.assertEqual(mset.welcome_message_uri, 'mailman:///welcome.txt')
 #
 
-@override_settings(API_BASE_URL='http://localhost:8081')
 class DRFTestCase(LiveServerTestCase):
 
     def setUp(self):
@@ -279,9 +280,6 @@ class DRFTestCase(LiveServerTestCase):
     def tearDown(self):
         self.client.logout()
 
-    def test_server_URL(self):
-        self.assertEqual(self.live_server_url, settings.API_BASE_URL)
-
     def test_get_HTTP_response(self):
         """Test that the REST API is operative"""
         # Get something
@@ -299,13 +297,18 @@ class DRFTestCase(LiveServerTestCase):
         res_json = json.loads(res.content)
         self.assertEqual(res_json['count'], 1)
 
-        # list settings should only have a string containing the URL
-        self.assertIsInstance(res_json['results'][0]['settings'], str)
+        res = self.client.get('/api/lists/1/')
+        res_json = json.loads(res.content)
+        self.assertEqual(res.status_code, 200)
 
-        # instead, settings should exist at its own separate endpoint
-        list_url = res_json['results'][0]['url']
-        settings_url = list_url + 'settings/'
-        res = self.client.get(settings_url)
+        #logger.debug("*********************************")
+        #logger.debug(res_json)
+        #logger.debug("*********************************")
+
+        url = urlsplit(res_json['settings']).path
+        res = self.client.get(url)
+        logger.debug(res.content)
         self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
-
+        # Test a random setting
+        self.assertTrue(res_json['admin_immed_notify'])
