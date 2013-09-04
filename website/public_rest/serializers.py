@@ -11,13 +11,13 @@ class _PartialMembershipSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class _PartialMailingListSerializer(serializers.HyperlinkedModelSerializer):
-
     class Meta:
         model = MailingList
         fields = ('url', 'fqdn_listname')
 
 
 #################################################################
+
 # Primary Model Serializers
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     emails = serializers.RelatedField(many=True)
@@ -43,6 +43,12 @@ class MembershipSerializer(serializers.HyperlinkedModelSerializer):
                 'is_owner', 'is_moderator', )
 
 
+class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = ListSettings
+        exclude = ('partial_URL', 'id', 'http_etag', 'acceptablealias')
+
+
 class MailingListSerializer(serializers.HyperlinkedModelSerializer):
 
     #XXX: mail_host should only be writable at creation time.
@@ -57,6 +63,11 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
     #        lookup_field='fqdn_listname'
     #)
 
+    # XXX
+    settings = serializers.Field()
+    #settings = serializers.RelatedField('settings')
+    #settings = serializers.HyperlinkedIdentityField(view_name='listsettings-detail')
+
     class Meta:
         model = MailingList
         fields = ('url', 'fqdn_listname', 'list_name', 'mail_host',
@@ -66,17 +77,12 @@ class MailingListSerializer(serializers.HyperlinkedModelSerializer):
                 #'members', 'owners', 'moderators',
                 )
 
+
 class MailingListDetailSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = MailingList
         fields = ('url', 'fqdn_listname', 'list_name', 'mail_host',
                 'settings')
-
-
-class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = ListSettings
-        exclude = ('partial_URL', 'id', 'http_etag', 'acceptablealias')
 
 
 class DomainSerializer(serializers.HyperlinkedModelSerializer):
