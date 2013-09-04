@@ -9,7 +9,6 @@ from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.test.client import Client
 from django.test.utils import override_settings
 from django.test.utils import setup_test_environment
-from django.test.client import Client
 
 from public_rest.models import *
 
