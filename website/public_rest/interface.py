@@ -319,7 +319,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             # Update the information at the back with new data.
             # >> Depends on the object_type
         else:
-            if self.object_type not in disallow_updates:
+            if self.object_type not in self.disallow_updates:
                 try:
                     ci.update_object(object_type=self.object_type,
                                     partial_url=self.partial_URL,
