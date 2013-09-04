@@ -309,4 +309,3 @@ class DRFTestCase(LiveServerTestCase):
         self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
 
-

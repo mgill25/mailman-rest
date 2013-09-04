@@ -44,45 +44,44 @@ class MembershipSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
         model = ListSettings
         exclude = ('partial_URL', 'id', 'http_etag', 'acceptablealias')
 
 
 class MailingListSerializer(serializers.HyperlinkedModelSerializer):
-
+    """Summary of a Mailing List"""
     #XXX: mail_host should only be writable at creation time.
     # Read-only
-    members = serializers.Field('members')
-    owners = serializers.Field('owners')
-    moderators = serializers.Field('moderators')
     fqdn_listname = serializers.Field('fqdn_listname')
-    membership_set = _PartialMembershipSerializer(many=True, read_only=True)
-    #membership_listing = serializers.HyperlinkedIdentityField(
-    #        view_name='membership-detail',
-    #        lookup_field='fqdn_listname'
-    #)
-
-    # XXX
-    settings = serializers.Field()
-    #settings = serializers.RelatedField('settings')
-    #settings = serializers.HyperlinkedIdentityField(view_name='listsettings-detail')
 
     class Meta:
         model = MailingList
-        fields = ('url', 'fqdn_listname', 'list_name', 'mail_host',
-                #'membership_set',
-                'settings',
-                #'membership_listing',
-                #'members', 'owners', 'moderators',
-                )
+        fields = ('url', 'fqdn_listname', 'list_name', 'mail_host')
 
 
 class MailingListDetailSerializer(serializers.HyperlinkedModelSerializer):
+    """Details of a Mailing List"""
+    members = serializers.Field('members')
+    owners = serializers.Field('owners')
+    moderators = serializers.Field('moderators')
+    membership_set = _PartialMembershipSerializer(many=True, read_only=True)
+    settings = serializers.HyperlinkedIdentityField(view_name='listsettings-detail')
+
+    #membership_listing = serializers.HyperlinkedIdentityField(
+    #           view_name='membership-detail',
+    #           lookup_field='fqdn_listname'
+    #)
+
+
     class Meta:
         model = MailingList
         fields = ('url', 'fqdn_listname', 'list_name', 'mail_host',
-                'settings')
+                  'membership_set', 'members', 'owners', 'moderators',
+                  #'membership_listing',
+                  'settings',
+                  )
 
 
 class DomainSerializer(serializers.HyperlinkedModelSerializer):

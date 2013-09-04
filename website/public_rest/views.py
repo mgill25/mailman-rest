@@ -140,19 +140,6 @@ class MailingListViewSet(BaseModelViewSet):
     serializer_class = MailingListSerializer
     #filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
 
-    @action(methods=['GET', 'POST', 'PATCH', 'PUT'])
-    def setting(self, request, *args, **kwargs):
-        # "setting" instead of "settings" here, the latter is causing
-        # FORMAT_SUFFIX_KWARGS AttributeError
-        mlist = self.get_object()
-        settings = mlist.settings
-        logger.debug("Inside action: {0}".format(settings))
-        if request.method == 'GET':
-            serializer = ListSettingsSerializer(settings,
-                                                many=True,
-                                                context={'request': request})
-            return Response(serializer.data, status=200)
-
     def get_queryset(self):
         #XXX: not working
         queryset = self.queryset
@@ -182,8 +169,8 @@ class MailingListViewSet(BaseModelViewSet):
         """Memberships are listed here in detail view"""
         queryset = self.queryset
         mlist = get_object_or_404(queryset, pk=pk)
-        serializer = MailingListSerializer(mlist,
-                context={'request': request})
+        serializer = MailingListDetailSerializer(mlist,
+                        context={'request': request})
         return Response(serializer.data)
 
     def create(self, request):
