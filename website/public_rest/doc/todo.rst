@@ -18,3 +18,6 @@ TODO
 5. `Preferences` for Users, Emails, Memberships etc. don't need to be "backed up"
    for the first time, since they are at their default values at both levels
    anyway.
+
+6. Make API lookup generic. A `pk` that, if changes, will also affect lookups
+   in the related models. See: `ListSettingsViewSet.get_object`.
