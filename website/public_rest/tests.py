@@ -9,7 +9,6 @@ from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.test.client import Client
 from django.test.utils import override_settings
 from django.test.utils import setup_test_environment
-from django.test.client import Client
 
 from public_rest.models import *
 
@@ -301,13 +300,18 @@ class DRFTestCase(LiveServerTestCase):
         res_json = json.loads(res.content)
         self.assertEqual(res.status_code, 200)
 
+        logger.debug("*********************************")
+        logger.debug(res_json)
         #logger.debug("*********************************")
-        #logger.debug(res_json)
-        #logger.debug("*********************************")
+        from django.core.management import call_command
+        call_command('dumpdata', 'public_rest.listsettings')
 
         url = urlsplit(res_json['settings']).path
+        logger.debug("*********************************")
+        logger.debug('\nSettings URL: {0}\n'.format(url))
         res = self.client.get(url)
         logger.debug(res.content)
+        logger.debug("*********************************")
         self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
         # Test a random setting

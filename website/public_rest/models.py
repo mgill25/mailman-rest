@@ -208,7 +208,7 @@ class CoreListMixin(models.Model):
             help_text=_("Human readable name for the mailing list"))
 
     domain = models.ForeignKey('Domain')
-    settings = models.OneToOneField(ListSettings, null=True)
+    settings = models.OneToOneField(ListSettings, null=True, related_name='mailinglist')
 
     def save(self, *args, **kwargs):
         """Populate these settings for the current MailingList instance."""

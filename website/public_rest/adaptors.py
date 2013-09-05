@@ -627,8 +627,10 @@ class SettingsAdaptor(BaseAdaptor):
     def url(self):
         self._get_info()
         fqdn_listname = self._info['fqdn_listname']
-        return '{0}/3.0/lists/{0}/config'.format(
+        fqdn_listname = fqdn_listname.replace('@', '.')
+        url = '{0}/3.0/lists/{1}/config'.format(
                 settings.MAILMAN_API_URL, fqdn_listname)
+        return url
 
     def __iter__(self):
         for key in self._info.keys():
