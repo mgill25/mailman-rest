@@ -189,10 +189,8 @@ class MailingListViewSet(BaseModelViewSet):
             return Response(data='Domain not found', status=404)
 
         mlist = domain.create_list(request.DATA['list_name'])
-        ### TODO: When created, every list must have an owner
-        ### IS THIS DONE CORRECTLY?
-        mlist.add_owner(request.user.preferred_email)
-
+        # TODO: When created, every list must have an owner
+        mlist.add_owner(request.user.preferred_email.address)
         serializer = MailingListSerializer(mlist,
                 context={'request': request})
         return Response(serializer.data, status=201)
@@ -201,11 +199,13 @@ class MailingListViewSet(BaseModelViewSet):
 class ListSettingsViewSet(BaseModelViewSet):
     queryset = ListSettings.objects.all()
     serializer_class = ListSettingsSerializer
+
     def get_object(self):
         queryset = self.get_queryset()
         filter = {}
-        filter['mailinglist_id'] = self.kwargs['pk']
+        filter['mailinglist__id'] = self.kwargs['pk']
         return get_object_or_404(queryset, **filter)
+
     #TODO: partial_updates won't succeed if empty fields are present
 
 
