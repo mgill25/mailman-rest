@@ -108,7 +108,7 @@ class MembershipViewSet(BaseModelViewSet):
     def create(self, request):
         """Membership creation"""
         role = request.DATA.get('role')
-        list_name = request.get('mlist')
+        list_name = request.DATA.get('mlist')
         address = request.DATA.get('address')
 
         try:
