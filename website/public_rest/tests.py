@@ -358,13 +358,15 @@ class CoreTest(TestCase):
         os.system(stop_command)
 
     def create_domain(self):
-        res = requests.post('{0}/domains'.format(self.base_url), data={'mail_host': 'mail.testhost.com',
-                                                 'base_url': 'testhost.com'},
+        res = requests.post('{0}/domains'.format(self.base_url),
+                            data={'mail_host': 'mail.testhost.com',
+                                  'base_url': 'testhost.com'},
                             auth=self.rest_auth)
         return res
 
     def create_list(self):
-        res = requests.post('{0}/lists'.format(self.base_url), data={'fqdn_listname': 'newtestlist@mail.testhost.com'},
+        res = requests.post('{0}/lists'.format(self.base_url),
+                            data={'fqdn_listname': 'newtestlist@mail.testhost.com'},
                             auth=self.rest_auth)
         return res
 
