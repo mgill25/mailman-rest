@@ -16,6 +16,7 @@ from django.conf import settings
 from public_rest.api import CoreInterface
 
 from urlparse import urlsplit
+import requests
 import json
 import os
 import time
@@ -316,3 +317,62 @@ class DRFTestCase(LiveServerTestCase):
         res_json = json.loads(res.content)
         # Test a random setting
         self.assertTrue(res_json['admin_immed_notify'])
+
+
+class CoreTest(TestCase):
+    base_url = 'http://localhost:8001/3.0'
+    rest_auth = ('restadmin', 'restpass')
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup a fresh copy of the Mailman core database."""
+        # If -core is running, stop it
+        try:
+            stop_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','stop_mailman'))
+            os.system(stop_command)
+        except:
+            pass
+        # Start a new copy of -core
+        start_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','start_mailman'))
+        os.system(start_command)
+        time.sleep(2)
+        # Give it some time to start
+        core = Connection()
+        tries = 1
+        while tries > 0:
+            try:
+                core.call('system')
+                print ('tries = {0}'.format(tries))
+                tries = -1
+            except MailmanConnectionError:
+                tries = tries +1
+                time.sleep(1)
+                if tries > 15:
+                    raise Exception('Mailman-core failed to start')
+
+    @classmethod
+    def tearDownClass(cls):
+        """Remove the Mailman core database after tests are complete."""
+        # Stop -core
+        stop_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','stop_mailman'))
+        os.system(stop_command)
+
+    def create_domain(self):
+        res = requests.post('{0}/domains'.format(self.base_url), data={'mail_host': 'mail.testhost.com',
+                                                 'base_url': 'testhost.com'},
+                            auth=self.rest_auth)
+        return res
+
+    def create_list(self):
+        res = requests.post('{0}/lists'.format(self.base_url), data={'fqdn_listname': 'newtestlist@mail.testhost.com'},
+                            auth=self.rest_auth)
+        return res
+
+    def test_domain_creation(self):
+        res = self.create_domain()
+        self.assertEqual(res.status_code, 201)
+
+    def test_list_creation(self):
+        res = self.create_list()
+        self.assertEqual(res.status_code, 201)
+
