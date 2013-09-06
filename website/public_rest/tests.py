@@ -263,7 +263,6 @@ setup_test_environment()
 #
 
 class DRFTestCase(LiveServerTestCase):
-
     def setUp(self):
         u = get_user_model().objects.create_superuser(display_name='Test Admin',
                                                       email='admin@test.com',
@@ -358,16 +357,13 @@ class CoreTest(TestCase):
         os.system(stop_command)
 
     def create_domain(self):
-        res = requests.post('{0}/domains'.format(self.base_url),
-                            data={'mail_host': 'mail.testhost.com',
-                                  'base_url': 'testhost.com'},
-                            auth=self.rest_auth)
+        url = '{0}/domains'.format(self.base_url)
+        res = requests.post(url, data={'mail_host': 'mail.testhost.com'}, auth=self.rest_auth)
         return res
 
     def create_list(self):
-        res = requests.post('{0}/lists'.format(self.base_url),
-                            data={'fqdn_listname': 'newtestlist@mail.testhost.com'},
-                            auth=self.rest_auth)
+        url = '{0}/lists'.format(self.base_url)
+        res = requests.post(url, data={'fqdn_listname': 'newtestlist@mail.testhost.com'}, auth=self.rest_auth)
         return res
 
     def test_domain_creation(self):
