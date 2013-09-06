@@ -101,7 +101,7 @@ class EmailViewSet(BaseModelViewSet):
 class MembershipViewSet(BaseModelViewSet):
 
     queryset = Membership.objects.all()
-    serializer_class = MembershipSerializer
+    serializer_class = MembershipListSerializer
     permission_classes = [IsAdminUser,]
     filter_fields = ('role', 'user',)
 
@@ -123,15 +123,22 @@ class MembershipViewSet(BaseModelViewSet):
         except Email.DoesNotExist, User.DoesNotExist:
             return Response(data='User not found.', status=404)
 
-        membership, created = Membership.objects.get_or_create(mlist=mlist, address=address,
-                                                              role=role)
-        #membership = Membership(mlist=mlist, address=email, role=role, user=user)
-        #membership.save()
+        #membership, created = Membership.objects.get_or_create(mlist=mlist, address=address,
+        #                                                      role=role)
+        membership = Membership(mlist=mlist, address=email, role=role, user=user)
+        membership.save()
         if created:
             serializer = MembershipSerializer(membership, context={'request': request})
             return Response(data=serializer.data, status=201)
         else:
             return Response(data='Already Exists', status=400)
+
+    def retrieve(self, request, pk=None):
+        queryset = self.queryset
+        membership = get_object_or_404(queryset, pk=pk)
+        serializer = MembershipDetailSerializer(membership,
+                        context={'request': request})
+        return Response(serializer.data)
 
 
 class MailingListViewSet(BaseModelViewSet):

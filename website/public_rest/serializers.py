@@ -29,18 +29,34 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
                 #'membership_set',
                 )
 
-class MembershipSerializer(serializers.HyperlinkedModelSerializer):
+
+class MembershipListSerializer(serializers.HyperlinkedModelSerializer):
 
     is_owner = serializers.Field('is_owner')
     is_moderator = serializers.Field('is_moderator')
-    #mlist = serializers.RelatedField()
-    mlist = _PartialMailingListSerializer()
+    mlist = serializers.RelatedField()
     user = serializers.RelatedField()
+
+    #XXX Should we consider have a different representations in
+    # list and detail views?
+    # address = 'foo@bar.com' in listview,
+    # address = { 'address': 'foo@bar.com',
+    #              'url': 'http://.../emails/1 } in detailview.
+    #address = serializers.RelatedField()
 
     class Meta:
         model = Membership
         fields = ('url', 'address', 'role', 'user', 'mlist',
                 'is_owner', 'is_moderator', )
+
+
+class MembershipDetailSerializer(serializers.HyperlinkedModelSerializer):
+    mlist = _PartialMailingListSerializer()
+    user = serializers.RelatedField()
+
+    class Meta:
+        model = Membership
+        fields = ('url', 'address', 'user', 'mlist')
 
 
 class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):
