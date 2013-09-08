@@ -248,3 +248,23 @@ class DomainViewSet(BaseModelViewSet):
     queryset = Domain.objects.all()
     serializer_class = DomainSerializer
 
+    def get_queryset(self):
+        queryset = self.queryset
+        mail_host = self.request.QUERY_PARAMS.get('mail_host', None)
+        base_url = self.request.QUERY_PARAMS.get('base_url', None)
+
+        if mail_host is not None:
+            queryset = queryset.filter(mail_host=mail_host)
+        if base_url is not None:
+            queryset = queryset.filter(base_url=base_url)
+
+        return queryset
+
+    def retrieve(self, request, pk=None):
+        """Domain detail view"""
+        queryset = self.queryset
+        domain = get_object_or_404(queryset, pk=pk)
+        serializer = DomainDetailSerializer(domain,
+                context={'request': request})
+        return Response(serializer.data)
+

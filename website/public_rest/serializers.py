@@ -112,10 +112,19 @@ class MailingListDetailSerializer(serializers.HyperlinkedModelSerializer):
 
 class DomainSerializer(serializers.HyperlinkedModelSerializer):
     #mailinglist_listing = serializers.HyperlinkedIdentityField(view_name='mailinglist-list')
-    mailinglist_set = _PartialMailingListSerializer(many=True,read_only=True)
+
     class Meta:
         model = Domain
-        fields = ('base_url', 'mail_host', 'contact_address', 'description', 'mailinglist_set')
+        fields = ('url', 'base_url', 'mail_host',)
+
+
+class DomainDetailSerializer(serializers.HyperlinkedModelSerializer):
+    mailinglist_set = _PartialMailingListSerializer(many=True,read_only=True)
+
+    class Meta:
+        model = Domain
+        fields = ('url', 'base_url', 'mail_host', 'contact_address',
+                'description', 'mailinglist_set')
 
 
 class EmailSerializer(serializers.HyperlinkedModelSerializer):
