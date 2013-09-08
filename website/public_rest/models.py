@@ -262,6 +262,13 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
     class Meta:
         abstract = True
 
+    def delete(self, using=None):
+        try:
+            self.settings.delete()
+        except self.settings.DoesNotExist:
+            pass
+        super(AbstractMailingList, self).delete(using=using)
+
     def defer_message(self, request_id):
         pass
 
