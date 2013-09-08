@@ -20,6 +20,8 @@ class BaseModelViewSet(ModelViewSet):
     def str2bool(self, s):
         return s.lower() in ['true']
 
+    def is_boolean_string(self, s):
+        return s.lower() in ['true', 'false']
 
 class UserViewSet(BaseModelViewSet):
     """
@@ -211,10 +213,28 @@ class ListSettingsViewSet(BaseModelViewSet):
         queryset = self.get_queryset()
         filter = {}
         filter['mailinglist__id'] = self.kwargs['pk']
-        return get_object_or_404(queryset, **filter)
+        obj = get_object_or_404(queryset, **filter)
+        #logger.debug("***********************************")
+        #logger.debug("List Setting Object: {0}".format(obj))
+        #logger.debug("***********************************")
+        return obj
 
-    #TODO: partial_updates won't succeed if empty fields are present
+    def partial_update(self, request, *args, **kwargs):
+        """ Handle PATCH """
+        obj = self.get_object()
 
+        try:
+            for key, val in request.DATA.items():
+                if self.is_boolean_string(key):
+                    setattr(obj, key, self.str2bool(val))
+                else:
+                    setattr(obj, key, val)
+            obj.save()
+        except Exception as e:
+            logger.debug("Exception:::{0} - {1}".format(e, type(e)))
+            return Response('Failed', status=500)
+        else:
+            return Response('Updated', status=204)
 
 class DomainViewSet(BaseModelViewSet):
     queryset = Domain.objects.all()
