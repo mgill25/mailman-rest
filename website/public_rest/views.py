@@ -46,6 +46,14 @@ class UserViewSet(BaseModelViewSet):
                                         context={'request': request})
             return Response(serializer.data, status=200)
 
+    def retrieve(self, request, pk=None):
+        """User detail view"""
+        queryset = self.queryset
+        user = get_object_or_404(queryset, pk=pk)
+        serializer = UserDetailSerializer(user,
+                        context={'request': request})
+        return Response(serializer.data)
+
     def get_queryset(self):
         queryset = self.queryset
         display_name = self.request.QUERY_PARAMS.get('display_name', None)

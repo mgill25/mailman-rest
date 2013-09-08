@@ -20,13 +20,23 @@ class _PartialMailingListSerializer(serializers.HyperlinkedModelSerializer):
 
 # Primary Model Serializers
 class UserSerializer(serializers.HyperlinkedModelSerializer):
-    emails = serializers.RelatedField(many=True)
 
     class Meta:
         model = User
-        fields = ('url', 'display_name', 'emails', 'is_superuser',
-                'preferred_email'
-                #'membership_set',
+        fields = ('url', 'display_name', 'is_superuser',
+                'preferred_email',
+                )
+
+
+class UserDetailSerializer(serializers.HyperlinkedModelSerializer):
+    emails = serializers.RelatedField(many=True)
+    membership_set = _PartialMembershipSerializer(many=True)
+
+    class Meta:
+        model = User
+        fields = ('url', 'display_name', 'is_superuser', 'emails',
+                  'preferred_email',
+                  'membership_set',
                 )
 
 
