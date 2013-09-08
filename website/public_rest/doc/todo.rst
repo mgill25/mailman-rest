@@ -26,6 +26,8 @@ TODO
 6. Make API lookup generic. A `pk` that, if changes, will also affect lookups
    in the related models. See: `ListSettingsViewSet.get_object`.
 
+7. Preferred_email automatic replacement if deleted; don't delete the last
+   remaining email address.
 
 -----
 1. `partial_URL` and `path` issues during the connection time. 
