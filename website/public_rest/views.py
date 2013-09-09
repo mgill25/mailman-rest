@@ -163,6 +163,7 @@ class MailingListViewSet(BaseModelViewSet):
         list_name = self.request.QUERY_PARAMS.get('list_name', None)
         fqdn_listname = self.request.QUERY_PARAMS.get('fqdn_listname', None)
         mail_host = self.request.QUERY_PARAMS.get('mail_host', None)
+        domain = self.request.QUERY_PARAMS.get('domain', None)
 
         if list_name is not None:
             queryset = self.queryset.filter(list_name=list_name)
@@ -233,10 +234,11 @@ class ListSettingsViewSet(BaseModelViewSet):
 
         try:
             for key, val in request.DATA.items():
-                if self.is_boolean_string(key):
-                    setattr(obj, key, self.str2bool(val))
-                else:
-                    setattr(obj, key, val)
+                if val is not None:
+                    if self.is_boolean_string(key):
+                        setattr(obj, key, self.str2bool(val))
+                    else:
+                        setattr(obj, key, val)
             obj.save()
         except Exception as e:
             logger.debug("Exception:::{0} - {1}".format(e, type(e)))
@@ -268,3 +270,43 @@ class DomainViewSet(BaseModelViewSet):
                 context={'request': request})
         return Response(serializer.data)
 
+    def create(self, request):
+        mail_host = self.request.DATA.get('mail_host', None)
+        base_url = self.request.DATA.get('base_url', None)
+        description = self.request.DATA.get('description', None)
+        contact_address = self.request.DATA.get('contact_address', None)
+
+        if mail_host is None:
+            return Response(data='Incomplete data', status=400)
+
+        try:
+            domain = Domain.objects.get(mail_host=mail_host)
+            if domain:
+                return Response(data='Already Exists!', status=400)
+        except Domain.DoesNotExist:
+            kwds = dict(mail_host=mail_host,
+                        base_url=base_url,
+                        contact_address=contact_address,
+                        description=description)
+            kwds = {k:v for (k, v) in kwds if v is not None}
+            domain = Domain.objects.create(**kwds)
+            serializer = DomainSerializer(domain, context={'request': request})
+            return Response(serializer.data, status=201)
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        description = request.DATA.get('description', None)
+        contact_address = request.DATA.get('contact_address', None)
+
+        kwds = dict(description=description,
+                    contact_address=contact_address)
+        try:
+            for key, val in kwds.items():
+                if val is not None:
+                    setattr(obj, key, val)
+            obj.save()
+        except Exception as e:
+            logger.debug("Exception:::{0} - {1}".format(e, type(e)))
+            return Response('Failed', status=500)
+        else:
+            return Response('Updated', status=204)
