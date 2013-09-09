@@ -365,6 +365,12 @@ class Domain(BaseModel, AbstractRemotelyBackedObject):
     def __unicode__(self):
         return self.mail_host
 
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            if not self.base_url:
+                self.base_url = 'http://' + self.mail_host
+        super(Domain, self).save(*args, **kwargs)
+
 
 class Email(BaseModel):
 
