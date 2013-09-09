@@ -36,10 +36,17 @@ class UserViewSet(BaseModelViewSet):
         user = self.get_object()
 
         if request.method == 'POST':
-            email = user.add_email(request.DATA.get('address'))
-            if email:
-                serializer = EmailSerializer(email, context={'request': request})
-                return Response(serializer.data, status=201)
+            try:
+                email = user.add_email(request.DATA.get('address'))
+            except ValueError as e:
+                return Response('Already Exists!', status=400)
+            except Exception as e:
+                return Response('Failed!', status=500)
+            else:
+                if email:
+                    serializer = EmailSerializer(email, context={'request': request})
+                    return Response(serializer.data, status=201)
+
         elif request.method == 'GET':
             serializer = EmailSerializer(user.emails,
                                         many=True,
