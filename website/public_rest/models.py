@@ -292,13 +292,13 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         s.delete()
 
     def add_owner(self, address):
-        self.subscribe(address, role='owner')
+        return self.subscribe(address, role='owner')
 
     def add_moderator(self, address):
-        self.subscribe(address, role='moderator')
+        return self.subscribe(address, role='moderator')
 
     def add_member(self, address):
-        self.subscribe(address, role='member')
+        return self.subscribe(address, role='member')
 
     @property
     def owners(self):
