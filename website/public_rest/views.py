@@ -175,14 +175,6 @@ class MailingListViewSet(BaseModelViewSet):
         self.queryset = queryset
         return super(MailingListViewSet, self).get_queryset()
 
-    #def list(self, request):
-    #    """Don't list memberships in the list view"""
-    #    queryset = self.queryset
-    #    serializer = MailingListDetailSerializer(queryset,
-    #            many=True,
-    #            context={'request': request})
-    #    return Response(serializer.data)
-
     def retrieve(self, request, pk=None):
         """Memberships are listed here in detail view"""
         queryset = self.queryset
@@ -213,6 +205,45 @@ class MailingListViewSet(BaseModelViewSet):
                 context={'request': request})
         return Response(serializer.data, status=201)
 
+    def _add_membership(self, request, *args, **kwargs):
+        mlist = self.get_object()
+        role = kwargs['role']
+
+        if request.method == 'GET':
+            obj = getattr(mlist, '{0}s'.format(role))
+            if obj and obj.exists():
+                serializer = MembershipDetailSerializer(obj,
+                                                        many=True,
+                                                        context={'request': request})
+                return Response(serializer.data, status=200)
+            else:
+                return Response(data='Not Found', status=404)
+
+        elif request.method == 'POST':
+            address = request.DATA.get('address', None)
+            if address:
+                logger.debug("Address: {0}".format(address))
+                obj = getattr(mlist, 'add_{0}'.format(role))(address)
+                serializer = MembershipDetailSerializer(obj,
+                                                        context={'request': request})
+                return Response(serializer.data, status=201)
+            else:
+                return Response('Invalid or Incomplete data', status=400)
+
+    @action(methods=['GET', 'POST'])
+    def members(self, request, *args, **kwargs):
+        kwargs['role'] = 'member'
+        return self._add_membership(request, *args, **kwargs)
+
+    @action(methods=['GET', 'POST'])
+    def moderators(self, request, *args, **kwargs):
+        kwargs['role'] = 'moderator'
+        return self._add_membership(request, *args, **kwargs)
+
+    @action(methods=['GET', 'POST'])
+    def owners(self, request, *args, **kwargs):
+        kwargs['role'] = 'owner'
+        return self._add_membership(request, *args, **kwargs)
 
 class ListSettingsViewSet(BaseModelViewSet):
     queryset = ListSettings.objects.all()
