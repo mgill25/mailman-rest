@@ -362,15 +362,6 @@ class DRFTestCase(LiveServerTestCase):
         self.assertIsInstance(mlist['moderators'], list)
 
 
-    def test_create_new_list(self):
-        res = self.client.post('/api/lists/', data={'list_name': 'new_list',
-            'mail_host': 'mail.example.com'})
-        self.assertEqual(res.status_code, 201)
-        mlist = json.loads(res.content)
-        self.assertEqual(mlist['fqdn_listname'], 'new_list@mail.example.com')
-        self.assertEqual(mlist['list_name'], 'new_list')
-
-
     def test_delete_list(self):
         res = self.client.get('/api/lists/1/')
         self.assertEqual(res.status_code, 200)
@@ -395,10 +386,13 @@ class DRFTestCase(LiveServerTestCase):
     def test_modify_list_settings(self):
         res = self.client.get('/api/lists/1/settings/')
         res_json = json.loads(res.content)
-        self.assertFalse(res_json['admin_immed_notify'])
-        res = self.client.patch('/api/lists/1/settings/', data={'admin_immed_notify': True})
+        self.assertEqual(res_json['admin_immed_notify'], True)
+        self.assertEqual(res_json['autoresponse_owner_text'], '')
+        res = self.client.patch('/api/lists/1/settings/', data={'admin_immed_notify': False,
+                                  'autoresponse_owner_text': 'THIS IS SPARTA!'})
         self.assertEqual(res.status_code, 204)
-        self.assertTrue(res_json['admin_immed_notify'])
+        self.assertEqual(res_json['admin_immed_notify'], False)
+        self.assertEqual(res_json['autoresponse_owner_text'], 'THIS IS SPARTA!')
 
 
     def test_pagination_on_custom_endpoint(self):
@@ -419,8 +413,24 @@ class DRFTestCase(LiveServerTestCase):
         self.assertTrue(res_json.has_key('next'))
         self.assertTrue(res_json.has_key('results'))
 
+
     def test_make_list_subscription(self):
-        pass
+        """
+        Subscribe a new membership to an existing list.
+        This ofcourse assumes valid permissions.
+        """
+        # new member
+        res = self.client.post('/api/lists/1/members/', data={'address':'newmember@foobar.com'})
+        self.assertEqual(res.status_code, 201)
+
+        # new moderator
+        res = self.client.post('/api/lists/1/moderators/', data={'address':'newmoderator@foobar.com'})
+        self.assertEqual(res.status_code, 201)
+
+        # new owner
+        res = self.client.post('/api/lists/1/owners/', data={'address':'newowner@foobar.com'})
+        self.assertEqual(res.status_code, 201)
+
 
     def test_list_unsubscription(self):
         pass
