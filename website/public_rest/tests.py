@@ -288,6 +288,36 @@ class DRFTestCase(LiveServerTestCase):
         self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
 
+    def test_get_domain_collection(self):
+        pass
+
+    def test_get_individual_domain(self):
+        pass
+
+    def test_post_new_domain(self):
+        pass
+
+    def test_delete_domain(self):
+        pass
+
+    def test_get_list_collection(self):
+        pass
+
+    def test_get_individual_list(self):
+        pass
+
+    def test_post_new_list(self):
+        pass
+
+    def test_delete_list(self):
+        pass
+
+    def test_get_list_settings(self):
+        pass
+
+    def test_modify_list_settings(self):
+        pass
+
     def test_list_settings(self):
         """Test List Settings"""
         d = Domain.objects.get(base_url='example.com')
@@ -335,6 +365,49 @@ class DRFTestCase(LiveServerTestCase):
         self.assertTrue(res_json.has_key('prev'))
         self.assertTrue(res_json.has_key('next'))
         self.assertTrue(res_json.has_key('results'))
+
+    def test_make_list_subscription(self):
+        pass
+
+    def test_list_unsubscription(self):
+        pass
+
+    def test_get_user_collection(self):
+        pass
+
+    def test_get_individual_user(self):
+        pass
+
+    def test_pos_new_user(self):
+        pass
+
+    def test_delete_user(self):
+        pass
+
+    def test_get_user_emails(self):
+        pass
+
+    def test_post_user_email(self):
+        pass
+
+    def test_remove_user_email(self):
+        pass
+
+    def test_get_user_preferences(self):
+        pass
+
+    def test_modify_user_preferences(self):
+        pass
+
+    def test_login(self):
+        pass
+
+    def test_logout(self):
+        pass
+
+    def test_permissions(self):
+        pass
+
 
 '''
 class CoreTest(TestCase):
