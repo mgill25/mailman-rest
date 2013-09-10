@@ -326,6 +326,7 @@ class DRFTestCase(LiveServerTestCase):
         # add a member
         res = self.client.post('/api/lists/1/members/', data={'address': 'newmember@foobar.com'})
         self.assertEqual(res.status_code, 201)
+        res = self.client.get('/api/lists/1/members/')
         res_json = json.loads(res.content)
         self.assertTrue(res_json.has_key('count'))
         self.assertTrue(res_json.has_key('prev'))
