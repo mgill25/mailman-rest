@@ -1,6 +1,8 @@
 import logging
 
 from django.contrib.auth.models import Group
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import link, action
 from rest_framework.filters import SearchFilter
@@ -22,6 +24,7 @@ class BaseModelViewSet(ModelViewSet):
 
     def is_boolean_string(self, s):
         return s.lower() in ['true', 'false']
+
 
 class UserViewSet(BaseModelViewSet):
     """
@@ -219,9 +222,12 @@ class MailingListViewSet(BaseModelViewSet):
         if request.method == 'GET':
             obj = getattr(mlist, '{0}s'.format(role))
             if obj and obj.exists():
-                serializer = MembershipDetailSerializer(obj,
-                                                        many=True,
-                                                        context={'request': request})
+                obj = self.make_paginator(request, obj)
+                #serializer = MembershipDetailSerializer(obj,
+                serializer = PaginatedMembershipDetailSerializer(obj,
+                                                            many=True,
+                                                            context={'request': request})
+                logger.debug("Serializer: {0}".format(serializer))
                 return Response(serializer.data, status=200)
             else:
                 return Response(data='Not Found', status=404)
@@ -251,6 +257,21 @@ class MailingListViewSet(BaseModelViewSet):
     def owners(self, request, *args, **kwargs):
         kwargs['role'] = 'owner'
         return self._add_membership(request, *args, **kwargs)
+
+    def make_paginator(self, request, qset):
+        paginator = Paginator(qset, 10)
+        page = request.QUERY_PARAMS.get('page')
+        try:
+            qset = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an int, deliver the first page
+            qset = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (eg. 9999)
+            # deliver the last page
+            qset = paginator.page(paginator.num_pages)
+        return qset
+
 
 class ListSettingsViewSet(BaseModelViewSet):
     queryset = ListSettings.objects.all()

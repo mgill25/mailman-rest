@@ -59,9 +59,10 @@ class MembershipDetailSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('url', 'address', 'role', 'user', 'mlist',)
 
 
+class PaginatedMembershipDetailSerializer(pagination.PaginationSerializer):
+
     class Meta:
-        model = Membership
-        fields = ('url', 'address', 'user', 'mlist')
+        object_serializer_class = MembershipListSerializer
 
 
 class ListSettingsSerializer(serializers.HyperlinkedModelSerializer):

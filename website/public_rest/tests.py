@@ -276,6 +276,8 @@ class DRFTestCase(LiveServerTestCase):
         self.client = Client()
         self.client.login(username='Test Admin', password='password')
 
+        mlist = d.create_list(list_name='test_list')
+
     def tearDown(self):
         self.client.logout()
 
@@ -289,7 +291,6 @@ class DRFTestCase(LiveServerTestCase):
     def test_list_settings(self):
         """Test List Settings"""
         d = Domain.objects.get(base_url='example.com')
-        mlist = d.create_list(list_name='test_list')
 
         res = self.client.get('/api/lists/')
         self.assertEqual(res.status_code, 200)
@@ -317,7 +318,21 @@ class DRFTestCase(LiveServerTestCase):
         # Test a random setting
         self.assertTrue(res_json['admin_immed_notify'])
 
+    def test_pagination_on_custom_endpoint(self):
+        # no members initially
+        res = self.client.get('/api/lists/1/members/')
+        self.assertEqual(res.status_code, 404)
 
+        # add a member
+        res = self.client.post('/api/lists/1/members/', data={'address': 'newmember@foobar.com'})
+        self.assertEqual(res.status_code, 201)
+        res_json = json.loads(res.content)
+        self.assertTrue(res_json.has_key('count'))
+        self.assertTrue(res_json.has_key('prev'))
+        self.assertTrue(res_json.has_key('next'))
+        self.assertTrue(res_json.has_key('results'))
+
+'''
 class CoreTest(TestCase):
     base_url = 'http://localhost:8001/3.0'
     rest_auth = ('restadmin', 'restpass')
@@ -374,3 +389,4 @@ class CoreTest(TestCase):
         res = self.create_list()
         self.assertEqual(res.status_code, 201)
 
+'''
