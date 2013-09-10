@@ -263,6 +263,7 @@ setup_test_environment()
 #
 
 class DRFTestCase(LiveServerTestCase):
+
     def setUp(self):
         u = get_user_model().objects.create_superuser(display_name='Test Admin',
                                                       email='admin@test.com',
@@ -278,8 +279,10 @@ class DRFTestCase(LiveServerTestCase):
 
         mlist = d.create_list(list_name='test_list')
 
+
     def tearDown(self):
         self.client.logout()
+
 
     def test_get_HTTP_response(self):
         """Test that the REST API is operative"""
@@ -287,6 +290,7 @@ class DRFTestCase(LiveServerTestCase):
         res = self.client.get('/api/')
         self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
+
 
     def test_get_domain_collection(self):
         res = self.client.get('/api/domains/')
@@ -297,6 +301,7 @@ class DRFTestCase(LiveServerTestCase):
         self.assertEqual(domain['mail_host'], 'mail.example.com')
         self.assertEqual(domain['base_url'], 'http://example.com')
 
+
     def test_get_individual_domain(self):
         res = self.client.get('/api/domains/1/')
         self.assertEqual(res.status_code, 200)
@@ -306,12 +311,14 @@ class DRFTestCase(LiveServerTestCase):
         self.assertEqual(domain['description'], 'An example domain')
         self.assertEqual(domain['contact_address'], 'admin@example.com')
 
-    def test_post_new_domain(self):
+
+    def test_create_new_domain(self):
         res = self.client.post('/api/domains/', data={'mail_host': 'mail.foobar.com'})
         self.assertEqual(res.status_code, 201)
         res_json = json.loads(res.content)
         self.assertEqual(res_json['mail_host'], 'mail.foobar.com')
         self.assertEqual(res_json['base_url'], 'http://mail.foobar.com')
+
 
     def test_delete_domain(self):
         res = self.client.get('/api/domains/1/')
@@ -321,53 +328,78 @@ class DRFTestCase(LiveServerTestCase):
         res = self.client.get('/api/domains/1/')
         self.assertEqual(res.status_code, 404)
 
+
     def test_get_list_collection(self):
-        pass
-
-    def test_get_individual_list(self):
-        pass
-
-    def test_post_new_list(self):
-        pass
-
-    def test_delete_list(self):
-        pass
-
-    def test_get_list_settings(self):
-        pass
-
-    def test_modify_list_settings(self):
-        pass
-
-    def test_list_settings(self):
-        """Test List Settings"""
-        d = Domain.objects.get(base_url='http://example.com')
-
         res = self.client.get('/api/lists/')
         self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
         self.assertEqual(res_json['count'], 1)
+        mlist = res_json['results'][0]
+        self.assertEqual(mlist['fqdn_listname'], 'test_list@mail.example.com')
+        self.assertEqual(mlist['list_name'], 'test_list')
 
+
+    def test_get_individual_list(self):
+        res = self.client.get('/api/lists/1/')
+        self.assertEqual(res.status_code, 200)
+        mlist = json.loads(res.content)
+        self.assertEqual(mlist['fqdn_listname'], 'test_list@mail.example.com')
+        self.assertEqual(mlist['list_name'], 'test_list')
+        self.assertIsInstance(mlist['members'], list)
+        self.assertIsInstance(mlist['owners'], list)
+        self.assertIsInstance(mlist['moderators'], list)
+
+
+    def test_create_new_list(self):
+        res = self.client.post('/api/lists/', data={'list_name': 'new_list',
+            'mail_host': 'mail.example.com'})
+        self.assertEqual(res.status_code, 201)
+        mlist = json.loads(res.content)
+        self.assertEqual(mlist['fqdn_listname'], 'new_list@mail.example.com')
+        self.assertEqual(mlist['list_name'], 'new_list')
+        self.assertIsInstance(mlist['members'], list)
+        self.assertIsInstance(mlist['owners'], list)
+        self.assertIsInstance(mlist['moderators'], list)
+
+
+    def test_create_new_list(self):
+        res = self.client.post('/api/lists/', data={'list_name': 'new_list',
+            'mail_host': 'mail.example.com'})
+        self.assertEqual(res.status_code, 201)
+        mlist = json.loads(res.content)
+        self.assertEqual(mlist['fqdn_listname'], 'new_list@mail.example.com')
+        self.assertEqual(mlist['list_name'], 'new_list')
+
+
+    def test_delete_list(self):
+        res = self.client.get('/api/lists/1/')
+        self.assertEqual(res.status_code, 200)
+        res = self.client.delete('/api/lists/1/')
+        self.assertEqual(res.status_code, 204)
+        res = self.client.get('/api/lists/1/')
+        self.assertEqual(res.status_code, 404)
+
+
+    def test_get_list_settings(self):
+        #from django.core.management import call_command
+        #call_command('dumpdata', 'public_rest.listsettings')
         res = self.client.get('/api/lists/1/')
         res_json = json.loads(res.content)
-        self.assertEqual(res.status_code, 200)
-
-        logger.debug("*********************************")
-        logger.debug(res_json)
-        #logger.debug("*********************************")
-        from django.core.management import call_command
-        call_command('dumpdata', 'public_rest.listsettings')
-
         url = urlsplit(res_json['settings']).path
-        logger.debug("*********************************")
-        logger.debug('\nSettings URL: {0}\n'.format(url))
         res = self.client.get(url)
-        logger.debug(res.content)
-        logger.debug("*********************************")
-        self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
-        # Test a random setting
+        self.assertEqual(res.status_code, 200)
         self.assertTrue(res_json['admin_immed_notify'])
+
+
+    def test_modify_list_settings(self):
+        res = self.client.get('/api/lists/1/settings/')
+        res_json = json.loads(res.content)
+        self.assertFalse(res_json['admin_immed_notify'])
+        res = self.client.patch('/api/lists/1/settings/', data={'admin_immed_notify': True})
+        self.assertEqual(res.status_code, 204)
+        self.assertTrue(res_json['admin_immed_notify'])
+
 
     def test_pagination_on_custom_endpoint(self):
         # no members initially
