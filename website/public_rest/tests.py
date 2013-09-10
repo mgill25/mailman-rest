@@ -289,16 +289,37 @@ class DRFTestCase(LiveServerTestCase):
         res_json = json.loads(res.content)
 
     def test_get_domain_collection(self):
-        pass
+        res = self.client.get('/api/domains/')
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+        self.assertEqual(res_json['count'], 1)
+        domain = res_json['results'][0]
+        self.assertEqual(domain['mail_host'], 'mail.example.com')
+        self.assertEqual(domain['base_url'], 'http://example.com')
 
     def test_get_individual_domain(self):
-        pass
+        res = self.client.get('/api/domains/1/')
+        self.assertEqual(res.status_code, 200)
+        domain = json.loads(res.content)
+        self.assertEqual(domain['mail_host'], 'mail.example.com')
+        self.assertEqual(domain['base_url'], 'http://example.com')
+        self.assertEqual(domain['description'], 'An example domain')
+        self.assertEqual(domain['contact_address'], 'admin@example.com')
 
     def test_post_new_domain(self):
-        pass
+        res = self.client.post('/api/domains/', data={'mail_host': 'mail.foobar.com'})
+        self.assertEqual(res.status_code, 201)
+        res_json = json.loads(res.content)
+        self.assertEqual(res_json['mail_host'], 'mail.foobar.com')
+        self.assertEqual(res_json['base_url'], 'http://mail.foobar.com')
 
     def test_delete_domain(self):
-        pass
+        res = self.client.get('/api/domains/1/')
+        self.assertEqual(res.status_code, 200)
+        res = self.client.delete('/api/domains/1/')
+        self.assertEqual(res.status_code, 204)
+        res = self.client.get('/api/domains/1/')
+        self.assertEqual(res.status_code, 404)
 
     def test_get_list_collection(self):
         pass
@@ -320,7 +341,7 @@ class DRFTestCase(LiveServerTestCase):
 
     def test_list_settings(self):
         """Test List Settings"""
-        d = Domain.objects.get(base_url='example.com')
+        d = Domain.objects.get(base_url='http://example.com')
 
         res = self.client.get('/api/lists/')
         self.assertEqual(res.status_code, 200)
@@ -353,7 +374,7 @@ class DRFTestCase(LiveServerTestCase):
         res = self.client.get('/api/lists/1/members/')
         self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
-        self.assertEqual(res_json.has_key('results'))
+        self.assertTrue(res_json.has_key('results'))
         self.assertEqual(len(res_json['results']), 0)
 
         # add a member
