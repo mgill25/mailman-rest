@@ -268,7 +268,7 @@ class DRFTestCase(LiveServerTestCase):
                                                       email='admin@test.com',
                                                       password='password')
 
-        d = Domain.objects.create(base_url='example.com',
+        d = Domain.objects.create(base_url='http://example.com',
                                   mail_host='mail.example.com',
                                   description='An example domain',
                                   contact_address='admin@example.com')
@@ -321,7 +321,10 @@ class DRFTestCase(LiveServerTestCase):
     def test_pagination_on_custom_endpoint(self):
         # no members initially
         res = self.client.get('/api/lists/1/members/')
-        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+        self.assertEqual(res_json.has_key('results'))
+        self.assertEqual(len(res_json['results']), 0)
 
         # add a member
         res = self.client.post('/api/lists/1/members/', data={'address': 'newmember@foobar.com'})

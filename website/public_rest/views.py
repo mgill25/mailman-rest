@@ -230,7 +230,8 @@ class MailingListViewSet(BaseModelViewSet):
                 logger.debug("Serializer: {0}".format(serializer))
                 return Response(serializer.data, status=200)
             else:
-                return Response(data='Not Found', status=404)
+                rv = dict(count=0, next='', prev='', results=[])
+                return Response(data=rv, status=200)
 
         elif request.method == 'POST':
             address = request.DATA.get('address', None)
@@ -347,7 +348,7 @@ class DomainViewSet(BaseModelViewSet):
                         base_url=base_url,
                         contact_address=contact_address,
                         description=description)
-            kwds = {k:v for (k, v) in kwds if v is not None}
+            kwds = {k:v for (k, v) in kwds.items() if v is not None}
             domain = Domain.objects.create(**kwds)
             serializer = DomainSerializer(domain, context={'request': request})
             return Response(serializer.data, status=201)
