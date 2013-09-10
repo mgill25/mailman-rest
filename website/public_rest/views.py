@@ -220,25 +220,25 @@ class MailingListViewSet(BaseModelViewSet):
         role = kwargs['role']
 
         if request.method == 'GET':
-            obj = getattr(mlist, '{0}s'.format(role))
-            if obj and obj.exists():
-                obj = self.make_paginator(request, obj)
-                #serializer = MembershipDetailSerializer(obj,
-                serializer = PaginatedMembershipDetailSerializer(obj,
+            qset = getattr(mlist, '{0}s'.format(role))
+            if qset and qset.exists():
+                qset = self.make_paginator(request, qset)
+                #serializer = MembershipDetailSerializer(qset,
+                serializer = PaginatedMembershipDetailSerializer(qset,
                                                             many=True,
                                                             context={'request': request})
                 logger.debug("Serializer: {0}".format(serializer))
                 return Response(serializer.data, status=200)
             else:
-                rv = dict(count=0, next='', prev='', results=[])
+                rv = dict(count=0, next=None, previous=None, results=[])
                 return Response(data=rv, status=200)
 
         elif request.method == 'POST':
             address = request.DATA.get('address', None)
             if address:
                 logger.debug("Address: {0}".format(address))
-                obj = getattr(mlist, 'add_{0}'.format(role))(address)
-                serializer = MembershipDetailSerializer(obj,
+                qset = getattr(mlist, 'add_{0}'.format(role))(address)
+                serializer = MembershipDetailSerializer(qset,
                                                         context={'request': request})
                 return Response(serializer.data, status=201)
             else:
