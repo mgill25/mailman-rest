@@ -196,7 +196,8 @@ class MembershipViewSet(BaseModelViewSet):
 
 
 class MembershipPrefsViewSet(BaseModelViewSet):
-    queryset = MembershipPrefs.objects.all()
+    queryset = MembershipPrefs.objects.get_query_set()
+
     serializer_class = MembershipPreferenceSerializer
     permission_classes = [IsAdminUser,]
 

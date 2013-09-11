@@ -23,6 +23,9 @@ import time
 
 setup_test_environment()
 
+import logging
+logging.disable(logging.INFO)   # logging.DEBUG
+
 #class ModelTest(TestCase):
 #
 #    @classmethod
