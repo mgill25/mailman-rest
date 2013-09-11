@@ -29,8 +29,14 @@ TODO
 7. Preferred_email automatic replacement if deleted; don't delete the last
    remaining email address.
 
+8. DRF - Pagination for secndary endpoint responses, either from the `@action` decorator
+   or manually hooked up to the URLConf.
+
+9. DRF - Status Codes should be returned via rest_framework.status, not direct
+   ints.
+
 -----
-1. `partial_URL` and `path` issues during the connection time. 
+1. `partial_URL` and `path` issues during the connection time.
 
 2. Resources should only have ONE representation -- `foo@bar.com` and
    `foo.bar.com` refer to the same mailing list in Core.
