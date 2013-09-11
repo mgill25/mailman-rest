@@ -56,7 +56,9 @@ class MembershipDetailSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Membership
-        fields = ('url', 'address', 'role', 'user', 'mlist',)
+        fields = (
+                #'url',
+                'address', 'role', 'user', 'mlist',)
 
 
 class PaginatedMembershipDetailSerializer(pagination.PaginationSerializer):
@@ -129,3 +131,35 @@ class EmailSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Email
         fields = ('url', 'address', 'user', 'verified')
+
+
+# Preferences
+PREFERENCE_FIELDS = fields = ('url',
+                'acknowledge_posts',
+                'delivery_status',
+                'delivery_mode',
+                'hide_address',
+                'preferred_language',
+                'receive_list_copy',
+                'receive_own_postings')
+
+class EmailPreferenceSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = EmailPrefs
+        fields = PREFERENCE_FIELDS
+
+
+class MembershipPreferenceSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = MembershipPrefs
+        fields = PREFERENCE_FIELDS
+
+
+class UserPreferenceSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = UserPrefs
+        fields = PREFERENCE_FIELDS
+

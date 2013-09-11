@@ -118,6 +118,35 @@ class EmailViewSet(BaseModelViewSet):
         return super(EmailViewSet, self).get_queryset()
 
 
+class EmailPrefsViewSet(BaseModelViewSet):
+    """Email Preferences"""
+    queryset = EmailPrefs.objects.all()
+    serializer_class = EmailPreferenceSerializer
+    permission_classes = [IsAdminUser,]
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        filter = {}
+        filter['email__id'] = self.kwargs['pk']
+        obj = get_object_or_404(queryset, **filter)
+        return obj
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        try:
+            for k, v in request.DATA.items():
+                if v is not None:
+                    if self.is_boolean_string(v):
+                        setattr(obj, k, self.str2bool(v))
+                    else:
+                        setattr(obj, k, v)
+            obj.save()
+        except Exception as e:
+            return Response('Failed', status=500)
+        else:
+            return Response('Updated', status=200)
+
+
 class MembershipViewSet(BaseModelViewSet):
 
     queryset = Membership.objects.all()
@@ -153,12 +182,47 @@ class MembershipViewSet(BaseModelViewSet):
         else:
             return Response(data='Already Exists', status=400)
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, role=None, list_id=None, address=None):
+        role = role[:-1]
         queryset = self.queryset
-        membership = get_object_or_404(queryset, pk=pk)
+        membership = get_object_or_404(queryset,
+                                        address__address=address,
+                                        role=role,
+                                        mlist__id=list_id)
+        logger.debug("Membership: {0}".format(membership))
         serializer = MembershipDetailSerializer(membership,
                         context={'request': request})
         return Response(serializer.data)
+
+
+class MembershipPrefsViewSet(BaseModelViewSet):
+    queryset = MembershipPrefs.objects.all()
+    serializer_class = MembershipPreferenceSerializer
+    permission_classes = [IsAdminUser,]
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        filter = {}
+        filter['membership__id'] = self.kwargs['list_id']
+        filter['membership__role'] = self.kwargs['role'][:-1]
+        filter['membership__address__address'] = self.kwargs['address']
+        obj = get_object_or_404(queryset, **filter)
+        return obj
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        try:
+            for k, v in request.DATA.items():
+                if v is not None:
+                    if self.is_boolean_string(v):
+                        setattr(obj, k, self.str2bool(v))
+                    else:
+                        setattr(obj, k, v)
+            obj.save()
+        except Exception as e:
+            return Response('Failed', status=500)
+        else:
+            return Response('Updated', status=200)
 
 
 class MailingListViewSet(BaseModelViewSet):
@@ -283,9 +347,6 @@ class ListSettingsViewSet(BaseModelViewSet):
         filter = {}
         filter['mailinglist__id'] = self.kwargs['pk']
         obj = get_object_or_404(queryset, **filter)
-        #logger.debug("***********************************")
-        #logger.debug("List Setting Object: {0}".format(obj))
-        #logger.debug("***********************************")
         return obj
 
     def partial_update(self, request, *args, **kwargs):
@@ -305,6 +366,7 @@ class ListSettingsViewSet(BaseModelViewSet):
             return Response('Failed', status=500)
         else:
             return Response('Updated', status=204)
+
 
 class DomainViewSet(BaseModelViewSet):
     queryset = Domain.objects.all()
