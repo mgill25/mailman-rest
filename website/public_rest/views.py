@@ -323,6 +323,23 @@ class MailingListViewSet(BaseModelViewSet):
         kwargs['role'] = 'owner'
         return self._add_membership(request, *args, **kwargs)
 
+    @link()
+    def memberships(self, request, *args, **kwargs):
+        """All memberships"""
+        mlist = self.get_object()
+        qset = mlist.membership_set.all()
+        if qset and qset.exists():
+            qset = self.make_paginator(request, qset)
+            serializer = MembershipDetailSerializer(qset,
+            #serializer = PaginatedMembershipDetailSerializer(qset,
+                                                        many=True,
+                                                        context={'request': request})
+            logger.debug("Serializer: {0}".format(serializer))
+            return Response(serializer.data, status=200)
+        else:
+            rv = dict(count=0, next=None, previous=None, results=[])
+            return Response(data=rv, status=200)
+
     def make_paginator(self, request, qset):
         paginator = Paginator(qset, 10)
         page = request.QUERY_PARAMS.get('page')
