@@ -4,13 +4,13 @@ Memberships
 
 Membership (or Subscriptions) represent the relationship between a User and a Mailing List.
 
-A membership is unique over the `{mailinglist, role, address}` set.
+A membership is unique cross-product over the ``{mailinglist, role, address}`` set.
 
 Membership Collection
 ---------------------
 
 You can view the list of all memberships for a given mailing list on the
-`/lists/<list_id>/memberships/` endpoint. This will return the entire roster
+``/lists/<list_id>/memberships/`` endpoint. This will return the entire roster
 for that list - members, owners and moderators.
 
 $ curl http://localhost:8000/api/lists/1/memberships/ -u admin:password
@@ -142,7 +142,7 @@ $ curl http://localhost:8000/api/lists/1/owners/ -u admin:password
     },
 ]
 
-Similary, we have `api/lists/<list_id>/members/` to query all the members for
+Similary, we have ``api/lists/<list_id>/members/`` to query all the members for
 the mailing list!
 
 Subscribing to Lists (Creating new memberships)
