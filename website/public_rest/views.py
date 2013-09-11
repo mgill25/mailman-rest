@@ -117,6 +117,29 @@ class EmailViewSet(BaseModelViewSet):
         self.queryset = queryset
         return super(EmailViewSet, self).get_queryset()
 
+    @action(methods=['POST'])
+    def verify(self, request, *args, **kwargs):
+        try:
+            email = self.get_object()
+            email.verified = True
+            email.save()
+        except Exception as e:
+            logger.error("Error: {0}".format(e))
+            return Response("Failure", status=500)
+        else:
+            return Response("Verified", status=204)
+
+    @action(methods=['POST'])
+    def unverify(self, request, *args, **kwargs):
+        try:
+            email = self.get_object()
+            email.verified = False
+            email.save()
+        except Exception as e:
+            logger.error("Error: {0}".format(e))
+            return Response("Failure", status=500)
+        else:
+            return Response("Unverified!", status=204)
 
 class EmailPrefsViewSet(BaseModelViewSet):
     """Email Preferences"""
@@ -144,7 +167,7 @@ class EmailPrefsViewSet(BaseModelViewSet):
         except Exception as e:
             return Response('Failed', status=500)
         else:
-            return Response('Updated', status=200)
+            return Response('Updated', status=204)
 
 
 class MembershipViewSet(BaseModelViewSet):
@@ -202,6 +225,7 @@ class MembershipPrefsViewSet(BaseModelViewSet):
     permission_classes = [IsAdminUser,]
 
     def get_object(self):
+        #TODO: Fix this
         queryset = self.get_queryset()
         filter = {}
         filter['membership__id'] = self.kwargs['list_id']
@@ -223,7 +247,7 @@ class MembershipPrefsViewSet(BaseModelViewSet):
         except Exception as e:
             return Response('Failed', status=500)
         else:
-            return Response('Updated', status=200)
+            return Response('Updated', status=204)
 
 
 class MailingListViewSet(BaseModelViewSet):
