@@ -9,33 +9,16 @@ router.register(r'domains', views.DomainViewSet)
 router.register(r'lists', views.MailingListViewSet)
 router.register(r'emails', views.EmailViewSet)
 
-listsettings_detail = views.ListSettingsViewSet.as_view({
-    'get': 'retrieve',
-    'post': 'create',
-    'put': 'update',
-    'patch': 'partial_update',
-})
 
-emailprefs_detail = views.EmailPrefsViewSet.as_view({
-    'get': 'retrieve',
-    'post': 'create',
-    'put': 'update',
-    'patch': 'partial_update',
-})
+detail_dict = { 'get': 'retrieve',
+                'post': 'create',
+                'put': 'update',
+                'patch': 'partial_update'}
 
-membership_detail = views.MembershipViewSet.as_view({
-    'get': 'retrieve',
-    'post': 'create',
-    'put': 'update',
-    'patch': 'partial_update',
-})
-
-membershipprefs_detail = views.MembershipPrefsViewSet.as_view({
-    'get': 'retrieve',
-    'post': 'create',
-    'put': 'update',
-    'patch': 'partial_update',
-})
+listsettings_detail = views.ListSettingsViewSet.as_view(detail_dict)
+emailprefs_detail = views.EmailPrefsViewSet.as_view(detail_dict)
+membership_detail = views.MembershipViewSet.as_view(detail_dict)
+membershipprefs_detail = views.MembershipPrefsViewSet.as_view(detail_dict)
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browseable API.
