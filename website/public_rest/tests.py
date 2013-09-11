@@ -360,9 +360,6 @@ class DRFTestCase(LiveServerTestCase):
         mlist = json.loads(res.content)
         self.assertEqual(mlist['fqdn_listname'], 'new_list@mail.example.com')
         self.assertEqual(mlist['list_name'], 'new_list')
-        self.assertIsInstance(mlist['members'], list)
-        self.assertIsInstance(mlist['owners'], list)
-        self.assertIsInstance(mlist['moderators'], list)
 
 
     def test_delete_list(self):
