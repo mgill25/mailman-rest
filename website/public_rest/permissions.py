@@ -88,3 +88,14 @@ class IsMemberOrReadOnlyPermission(BaseMembershipPermission):
             return True
         return self.has_valid_memberships(request, user, 'member')
 
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+
+    def has_permission(self, request, obj):
+        user = request.user
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        elif request.user and request.user.is_staff:
+            return True
+        return False

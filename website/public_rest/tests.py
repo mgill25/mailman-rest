@@ -9,6 +9,7 @@ from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.test.client import Client
 from django.test.utils import override_settings
 from django.test.utils import setup_test_environment
+from rest_framework.test import APILiveServerTestCase, APIClient
 
 from public_rest.models import *
 
@@ -265,7 +266,7 @@ logging.disable(logging.INFO)   # logging.DEBUG
 #        self.assertEqual(mset.welcome_message_uri, 'mailman:///welcome.txt')
 #
 
-class DRFTestCase(LiveServerTestCase):
+class DRFTestCase(APILiveServerTestCase):
 
     def setUp(self):
         u = get_user_model().objects.create_superuser(display_name='Test Admin',
@@ -277,7 +278,7 @@ class DRFTestCase(LiveServerTestCase):
                                   description='An example domain',
                                   contact_address='admin@example.com')
 
-        self.client = Client()
+        self.client = APIClient()
         self.client.login(username='Test Admin', password='password')
 
         mlist = d.create_list(list_name='test_list')

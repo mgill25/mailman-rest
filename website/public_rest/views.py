@@ -32,9 +32,9 @@ class UserViewSet(BaseModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsOwnerOrReadOnlyPermission]
+    permission_classes = [IsAdminOrReadOnly]
 
-    @action(methods=['POST', 'GET'])
+    @action(methods=['POST', 'GET'], permission_classes=[IsOwnerOrModeratorPermission])
     def emails(self, request, *args, **kwargs):
         user = self.get_object()
 
@@ -145,7 +145,7 @@ class EmailPrefsViewSet(BaseModelViewSet):
     """Email Preferences"""
     queryset = EmailPrefs.objects.all()
     serializer_class = EmailPreferenceSerializer
-    permission_classes = (IsOwnerOrReadOnlyPermission,)
+    permission_classes = [IsOwnerOrReadOnlyPermission,]
 
     def get_object(self):
         queryset = self.get_queryset()
@@ -256,8 +256,11 @@ class MailingListViewSet(BaseModelViewSet):
 
     queryset = MailingList.objects.all()
     serializer_class = MailingListSerializer
-    permission_classes = [IsOwnerOrReadOnlyPermission,]
     #filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
+
+    # Can't have IsOwnerOrReadOnlyPermission: No owners before list creation (which
+    # happens after authentication)
+    permission_classes = [IsAdminOrReadOnly,]
 
     def get_queryset(self):
         #XXX: not working
@@ -336,17 +339,17 @@ class MailingListViewSet(BaseModelViewSet):
             else:
                 return Response('Invalid or Incomplete data', status=400)
 
-    @action(methods=['GET', 'POST'])
+    @action(methods=['GET', 'POST'], permission_classes=[IsOwnerOrModeratorPermission])
     def members(self, request, *args, **kwargs):
         kwargs['role'] = 'member'
         return self._add_membership(request, *args, **kwargs)
 
-    @action(methods=['GET', 'POST'])
+    @action(methods=['GET', 'POST'], permission_classes=[IsOwnerOrModeratorPermission])
     def moderators(self, request, *args, **kwargs):
         kwargs['role'] = 'moderator'
         return self._add_membership(request, *args, **kwargs)
 
-    @action(methods=['GET', 'POST'])
+    @action(methods=['GET', 'POST'], permission_classes=[IsOwnerOrModeratorPermission])
     def owners(self, request, *args, **kwargs):
         kwargs['role'] = 'owner'
         return self._add_membership(request, *args, **kwargs)
@@ -418,7 +421,7 @@ class ListSettingsViewSet(BaseModelViewSet):
 class DomainViewSet(BaseModelViewSet):
     queryset = Domain.objects.all()
     serializer_class = DomainSerializer
-    permission_classes = [IsOwnerOrReadOnlyPermission,]
+    permission_classes = [IsAdminOrReadOnly,]
 
     def get_queryset(self):
         queryset = self.queryset
