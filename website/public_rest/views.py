@@ -32,7 +32,7 @@ class UserViewSet(BaseModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsOwnerOrReadOnlyPermission]
 
     @action(methods=['POST', 'GET'])
     def emails(self, request, *args, **kwargs):
@@ -98,7 +98,7 @@ class EmailViewSet(BaseModelViewSet):
     queryset = Email.objects.all()
     serializer_class = EmailSerializer
     filter_fields = ('user', 'address', 'verified',)
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsOwnerOrReadOnlyPermission]
 
     def get_queryset(self):
         queryset = self.queryset
@@ -145,13 +145,14 @@ class EmailPrefsViewSet(BaseModelViewSet):
     """Email Preferences"""
     queryset = EmailPrefs.objects.all()
     serializer_class = EmailPreferenceSerializer
-    permission_classes = [IsAdminUser,]
+    permission_classes = (IsOwnerOrReadOnlyPermission,)
 
     def get_object(self):
         queryset = self.get_queryset()
         filter = {}
         filter['email__id'] = self.kwargs['pk']
         obj = get_object_or_404(queryset, **filter)
+        self.check_object_permissions(self.request, obj)
         return obj
 
     def partial_update(self, request, *args, **kwargs):
@@ -174,7 +175,7 @@ class MembershipViewSet(BaseModelViewSet):
 
     queryset = Membership.objects.all()
     serializer_class = MembershipListSerializer
-    permission_classes = [IsAdminUser,]
+    permission_classes = [IsOwnerOrReadOnlyPermission]
     filter_fields = ('role', 'user',)
 
     def create(self, request):
@@ -222,7 +223,7 @@ class MembershipPrefsViewSet(BaseModelViewSet):
     queryset = MembershipPrefs.objects.get_query_set()
 
     serializer_class = MembershipPreferenceSerializer
-    permission_classes = [IsAdminUser,]
+    permission_classes = [IsOwnerOrReadOnlyPermission,]
 
     def get_object(self):
         #TODO: Fix this
@@ -232,6 +233,7 @@ class MembershipPrefsViewSet(BaseModelViewSet):
         filter['membership__role'] = self.kwargs['role'][:-1]
         filter['membership__address__address'] = self.kwargs['address']
         obj = get_object_or_404(queryset, **filter)
+        self.check_object_permissions(self.request, obj)
         return obj
 
     def partial_update(self, request, *args, **kwargs):
@@ -254,6 +256,7 @@ class MailingListViewSet(BaseModelViewSet):
 
     queryset = MailingList.objects.all()
     serializer_class = MailingListSerializer
+    permission_classes = [IsOwnerOrReadOnlyPermission,]
     #filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
 
     def get_queryset(self):
@@ -383,12 +386,14 @@ class MailingListViewSet(BaseModelViewSet):
 class ListSettingsViewSet(BaseModelViewSet):
     queryset = ListSettings.objects.all()
     serializer_class = ListSettingsSerializer
+    permission_classes = [IsOwnerOrModeratorPermission,]
 
     def get_object(self):
         queryset = self.get_queryset()
         filter = {}
         filter['mailinglist__id'] = self.kwargs['pk']
         obj = get_object_or_404(queryset, **filter)
+        self.check_object_permissions(self.request, obj)
         return obj
 
     def partial_update(self, request, *args, **kwargs):
@@ -413,6 +418,7 @@ class ListSettingsViewSet(BaseModelViewSet):
 class DomainViewSet(BaseModelViewSet):
     queryset = Domain.objects.all()
     serializer_class = DomainSerializer
+    permission_classes = [IsOwnerOrReadOnlyPermission,]
 
     def get_queryset(self):
         queryset = self.queryset

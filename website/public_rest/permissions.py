@@ -26,6 +26,7 @@ class IsValidMembershipPermission(permissions.BasePermission):
             return True
         return False
 
+
 class BaseMembershipPermission(permissions.BasePermission):
     """
     Authentication is necessary.
@@ -39,11 +40,13 @@ class BaseMembershipPermission(permissions.BasePermission):
                 return True
         return False
 
+
 class IsValidModeratorPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
         return self.has_valid_memberships(request, user, 'moderator')
+
 
 class IsValidOwnerPermission(BaseMembershipPermission):
 
@@ -51,9 +54,37 @@ class IsValidOwnerPermission(BaseMembershipPermission):
         user = request.user
         return self.has_valid_memberships(request, user, 'owner')
 
+
 class IsValidMemberPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
+        return self.has_valid_memberships(request, user, 'member')
+
+
+class IsOwnerOrModeratorPermission(BaseMembershipPermission):
+
+    def has_permission(self, request, view):
+        user = request.user
+        is_member = self.has_valid_memberships(request, user, 'member')
+        is_moderator = self.has_valid_memberships(request, user, 'moderator')
+        return is_member or is_moderator
+
+
+class IsOwnerOrReadOnlyPermission(BaseMembershipPermission):
+
+    def has_permission(self, request, view):
+        user = request.user
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return self.has_valid_memberships(request, user, 'owner')
+
+
+class IsMemberOrReadOnlyPermission(BaseMembershipPermission):
+
+    def has_permission(self, request, obj):
+        user = request.user
+        if request.method in permissions.SAFE_METHODS:
+            return True
         return self.has_valid_memberships(request, user, 'member')
 
