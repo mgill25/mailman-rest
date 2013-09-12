@@ -282,7 +282,7 @@ class DRFTestCase(APILiveServerTestCase):
         self.client.login(username='Test Admin', password='password')
 
         mlist = d.create_list(list_name='test_list')
-
+        mlist.add_owner(u.preferred_email)
 
     def tearDown(self):
         self.client.logout()
