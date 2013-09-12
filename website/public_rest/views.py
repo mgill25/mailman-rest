@@ -329,13 +329,49 @@ class MailingListViewSet(BaseModelViewSet):
                 return Response(data=rv, status=200)
 
         elif request.method == 'POST':
+            # If an existing user's display_name is provided,
+            # use that user's preferred_email for subscription
+
             address = request.DATA.get('address', None)
+            display_name = request.DATA.get('user', None)
+
+            if address and display_name:
+                try:
+                    user = User.objects.get(display_name=display_name)
+                except User.DoesNotExist:
+                    return Response('User not found', status=404)
+                except Exception as e:
+                    return Response('Failed to get user', status=500)
+
+                user_addresses = [email.addr for email in user.email_set.all()]
+                if address not in user_addresses:
+                    return Response('Given address is not related to User', status=400)
+
             if address:
                 logger.debug("Address: {0}".format(address))
                 qset = getattr(mlist, 'add_{0}'.format(role))(address)
+
                 serializer = MembershipDetailSerializer(qset,
                                                         context={'request': request})
                 return Response(serializer.data, status=201)
+
+            elif display_name:
+                try:
+                    user = User.objects.get(display_name=display_name)
+                except User.DoesNotExist:
+                    return Response('User not found', status=404)
+                except Exception as e:
+                    return Response('Failed to get user', status=500)
+
+                # Use preferred address if no address explicitely provided
+                if user:
+                    address = user.preferred_email.address
+                    qset = getattr(mlist, 'add_{0}'.format(role))(address)
+
+                serializer = MembershipDetailSerializer(qset,
+                                                        context={'request': request})
+                return Response(serializer.data, status=201)
+
             else:
                 return Response('Invalid or Incomplete data', status=400)
 
