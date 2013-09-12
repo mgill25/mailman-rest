@@ -27,7 +27,7 @@ setup_test_environment()
 import logging
 logging.disable(logging.INFO)   # logging.DEBUG
 
-'''
+
 class ModelTest(TestCase):
 
     @classmethod
@@ -218,6 +218,19 @@ class ModelTest(TestCase):
         self.assertEqual(prefs['delivery_status'], '')
         self.assertEqual(prefs['preferred_language'], '')
 
+    def test_subscriber_preferences_persistance(self):
+        """Test that membership preferences are actually linked to the object itself."""
+        domain, mlist = self.setup_list()
+        user = User.objects.get(display_name='Test Admin')
+        sub = self.create_subscription(user, mlist, 'owner')
+        prefs = sub.preferences
+        self.assertIsNotNone(prefs)
+        membership = Membership.objects.get(user__display_name='Test Admin',
+                                            mlist__fqdn_listname='test@mail.example.com',
+                                            role='owner')
+        self.assertIsNotNone(membership.preferences)
+        self.assertIsInstance(membership.preferences, MembershipPrefs)
+
     def test_list_settings(self):
         domain, mlist = self.setup_list()
         user = User.objects.get(display_name='Test Admin')
@@ -265,7 +278,7 @@ class ModelTest(TestCase):
         self.assertEqual(mset.subject_prefix, '')
         self.assertEqual(mset.web_host, '')
         self.assertEqual(mset.welcome_message_uri, 'mailman:///welcome.txt')
-'''
+
 
 class DRFTestCase(APILiveServerTestCase):
 
@@ -472,7 +485,6 @@ class DRFTestCase(APILiveServerTestCase):
 
     def test_permissions(self):
         pass
-
 
 '''
 class CoreTest(TestCase):
