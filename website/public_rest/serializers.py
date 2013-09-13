@@ -155,6 +155,7 @@ class MembershipPreferenceSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = MembershipPrefs
         fields = PREFERENCE_FIELDS
+        lookup_field = 'address'
 
 
 class UserPreferenceSerializer(serializers.HyperlinkedModelSerializer):

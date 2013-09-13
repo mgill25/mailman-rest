@@ -233,21 +233,20 @@ class MembershipViewSet(BaseModelViewSet):
             return Response(status=204)
 
 class MembershipPrefsViewSet(BaseModelViewSet):
-    queryset = MembershipPrefs.objects.get_query_set()
-
+    queryset = Membership.objects.get_query_set()
     serializer_class = MembershipPreferenceSerializer
     permission_classes = [IsOwnerOrReadOnlyPermission,]
 
     def get_object(self):
-        #TODO: Fix this
         queryset = self.get_queryset()
         filter = {}
-        filter['membership__id'] = self.kwargs['list_id']
-        filter['membership__role'] = self.kwargs['role'][:-1]
-        filter['membership__address__address'] = self.kwargs['address']
+        filter['mlist_id'] = self.kwargs['list_id']
+        filter['role'] = self.kwargs['role'][:-1]
+        filter['address__address'] = self.kwargs['address']
         obj = get_object_or_404(queryset, **filter)
+        prefs = obj.preferences
         self.check_object_permissions(self.request, obj)
-        return obj
+        return prefs
 
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
