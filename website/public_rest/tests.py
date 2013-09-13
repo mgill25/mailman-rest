@@ -411,12 +411,20 @@ class DRFTestCase(APILiveServerTestCase):
 
     def test_modify_list_settings(self):
         res = self.client.get('/api/lists/1/settings/')
+        self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
         self.assertEqual(res_json['admin_immed_notify'], True)
         self.assertEqual(res_json['autoresponse_owner_text'], '')
-        res = self.client.patch('/api/lists/1/settings/', data={'admin_immed_notify': False,
-                                  'autoresponse_owner_text': 'THIS IS SPARTA!'})
+
+        res = self.client.patch('/api/lists/1/settings/',
+                                data={'admin_immed_notify': 'false',
+                                'autoresponse_owner_text': 'THIS IS SPARTA!'})
+
         self.assertEqual(res.status_code, 204)
+
+        res = self.client.get('/api/lists/1/settings/')
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
         self.assertEqual(res_json['admin_immed_notify'], False)
         self.assertEqual(res_json['autoresponse_owner_text'], 'THIS IS SPARTA!')
 

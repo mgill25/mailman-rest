@@ -442,7 +442,7 @@ class ListSettingsViewSet(BaseModelViewSet):
         try:
             for key, val in request.DATA.items():
                 if val is not None:
-                    if self.is_boolean_string(key):
+                    if self.is_boolean_string(val):
                         setattr(obj, key, self.str2bool(val))
                     else:
                         setattr(obj, key, val)
