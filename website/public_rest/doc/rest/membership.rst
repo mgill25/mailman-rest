@@ -145,6 +145,32 @@ $ curl http://localhost:8000/api/lists/1/owners/ -u admin:password
 Similary, we have ``api/lists/<list_id>/members/`` to query all the members for
 the mailing list!
 
+Getting Individual Subscriptions
+--------------------------------
+
+Individual subscriptions can be accessed via ``api/lists/<list_id>/members/<email_address>``
+endpoint.
+
+$ curl -i http://localhost:8000/api/lists/1/members/foo@bar.com/ -u admin:password
+HTTP/1.0 200 OK
+Date: Fri, 13 Sep 2013 12:28:43 GMT
+Server: WSGIServer/0.1 Python/2.7.3
+Vary: Accept, Accept-Language, Cookie
+Content-Type: application/json
+Content-Language: en-us
+Allow: GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH
+
+{
+    "address": "http://localhost:8000/api/emails/2/",
+    "role": "member",
+    "user": "http://localhost:8000/api/users/3/",
+    "mlist": {
+        "url": "http://localhost:8000/api/lists/1/",
+        "fqdn_listname": "newlist@hellogoodbye.com"
+    }
+}
+
+
 Subscribing to Lists (Creating new memberships)
 -----------------------------------------------
 
@@ -175,3 +201,18 @@ Allow: GET, POST, HEAD, OPTIONS
 
 Unsubscribe from Lists
 ----------------------
+
+Unsubscription means deleting an existing membership. A `DELETE` on the
+membership's URL leads to the unsubscription!
+
+$ curl -i -X DELETE http://localhost:8000/api/lists/1/members/foo@bar.com/ -u admin:password
+HTTP/1.0 204 NO CONTENT
+Date: Fri, 13 Sep 2013 12:32:20 GMT
+Server: WSGIServer/0.1 Python/2.7.3
+Vary: Accept, Accept-Language, Cookie
+Content-Length: 0
+Content-Type: application/json
+Content-Language: en-us
+Allow: GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH
+
+
