@@ -175,7 +175,7 @@ class MembershipViewSet(BaseModelViewSet):
 
     queryset = Membership.objects.all()
     serializer_class = MembershipListSerializer
-    permission_classes = [IsOwnerOrReadOnlyPermission]
+    permission_classes = [IsOwnerOrReadOnlyPermission]    #TODO User can unsubscribe from his lists
     filter_fields = ('role', 'user',)
 
     def create(self, request):
@@ -218,6 +218,19 @@ class MembershipViewSet(BaseModelViewSet):
                         context={'request': request})
         return Response(serializer.data)
 
+    def destroy(self, request, role=None, list_id=None, address=None):
+        role = role[:-1]
+        queryset = self.queryset
+        membership = get_object_or_404(queryset,
+                                        address__address=address,
+                                        role=role,
+                                        mlist__id=list_id)
+        try:
+            membership.delete()
+        except Exception as e:
+            return Response("Failed", status=500)
+        else:
+            return Response(status=204)
 
 class MembershipPrefsViewSet(BaseModelViewSet):
     queryset = MembershipPrefs.objects.get_query_set()
@@ -318,8 +331,8 @@ class MailingListViewSet(BaseModelViewSet):
             qset = getattr(mlist, '{0}s'.format(role))
             if qset and qset.exists():
                 qset = self.make_paginator(request, qset)
-                #serializer = MembershipDetailSerializer(qset,
-                serializer = PaginatedMembershipDetailSerializer(qset,
+                serializer = MembershipDetailSerializer(qset,
+                #serializer = PaginatedMembershipDetailSerializer(qset,
                                                             many=True,
                                                             context={'request': request})
                 logger.debug("Serializer: {0}".format(serializer))
@@ -363,7 +376,7 @@ class MailingListViewSet(BaseModelViewSet):
                 except Exception as e:
                     return Response('Failed to get user', status=500)
 
-                # Use preferred address if no address explicitely provided
+                # Use preferred address if no address explicitly provided
                 if user:
                     address = user.preferred_email.address
                     qset = getattr(mlist, 'add_{0}'.format(role))(address)

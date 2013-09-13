@@ -12,7 +12,8 @@ router.register(r'emails', views.EmailViewSet)
 detail_dict = { 'get': 'retrieve',
                 'post': 'create',
                 'put': 'update',
-                'patch': 'partial_update'}
+                'patch': 'partial_update',
+                'delete': 'destroy'}
 
 listsettings_detail = views.ListSettingsViewSet.as_view(detail_dict)
 emailprefs_detail = views.EmailPrefsViewSet.as_view(detail_dict)
