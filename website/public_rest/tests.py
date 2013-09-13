@@ -633,16 +633,76 @@ class DRFTestCase(APILiveServerTestCase):
 
 
     def test_delete_user(self):
-        pass
+        # Create a user
+        res = self.client.post('/api/users/', data={'display_name': 'Zeus',
+                                                    'email': 'ladies_love@olympus.com',
+                                                    'password':'Titans_Suck!'})
+        self.assertEqual(res.status_code, 201)
+        user_path = urlsplit(json.loads(res.content)['url']).path
+
+        res = self.client.get(user_path)
+        self.assertEqual(res.status_code, 200)
+        res = self.client.delete(user_path)
+        self.assertEqual(res.status_code, 204)
+        res = self.client.get(user_path)
+        self.assertEqual(res.status_code, 404)
+
 
     def test_get_user_emails(self):
-        pass
+        """Access all the emails associated with the user"""
+        res = self.client.post('/api/users/', data={'display_name': 'Zeus',
+                                                    'email': 'god@olympus.com',
+                                                    'password':'Titans_Suck!'})
+        self.assertEqual(res.status_code, 201)
+        user_path = urlsplit(json.loads(res.content)['url']).path
 
-    def test_post_user_email(self):
-        pass
+        res = self.client.get('{0}emails/'.format(user_path))
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+        #XXX
+        self.assertIsInstance(res_json, list)
+        self.assertEqual(res_json[0]['address'], 'god@olympus.com')
+        self.assertEqual(res_json[0]['verified'], False)
+        self.assertEqual(res_json[0]['user'], 'Zeus')
+
+
+    def test_add_user_email(self):
+        """Add new emails for a user"""
+        res = self.client.post('/api/users/', data={'display_name': 'Julius',
+                                                    'email': 'general@rome.com',
+                                                    'password':'EtTuBrute? :('})
+        self.assertEqual(res.status_code, 201)
+        user_path = urlsplit(json.loads(res.content)['url']).path
+
+        res = self.client.post('{0}emails/'.format(user_path),
+                data={'address': 'gaius@caeser.com'})
+        self.assertEqual(res.status_code, 201)
+        res_json = json.loads(res.content)
+        self.assertEqual(res_json['address'], 'gaius@caeser.com')
+        self.assertEqual(res_json['user'], 'Julius')
+        self.assertEqual(res_json['verified'], False)
+
 
     def test_remove_user_email(self):
-        pass
+        """Email deletion"""
+        # Creation
+        res = self.client.post('/api/users/', data={'display_name': 'Robert',
+                                                    'email': 'director@manhattan.com',
+                                                    'password':'IAmBecomeDeath'})
+        self.assertEqual(res.status_code, 201)
+        user_path = urlsplit(json.loads(res.content)['url']).path
+
+        res = self.client.post('{0}emails/'.format(user_path),
+                data={'address': 'oshi@itexplodes.com'})
+        self.assertEqual(res.status_code, 201)
+        res_json = json.loads(res.content)
+        email_path = urlsplit(res_json['url']).path
+        # Deletion
+        res = self.client.delete(email_path)
+        self.assertEqual(res.status_code, 204)
+        res = self.client.get(email_path)
+        self.assertEqual(res.status_code, 404)
+
 
     def test_get_user_preferences(self):
         pass
