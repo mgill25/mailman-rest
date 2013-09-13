@@ -66,9 +66,9 @@ class IsOwnerOrModeratorPermission(BaseMembershipPermission):
 
     def has_permission(self, request, view):
         user = request.user
-        is_member = self.has_valid_memberships(request, user, 'member')
+        is_owner = self.has_valid_memberships(request, user, 'owner')
         is_moderator = self.has_valid_memberships(request, user, 'moderator')
-        return is_member or is_moderator
+        return is_owner or is_moderator
 
 
 class IsOwnerOrReadOnlyPermission(BaseMembershipPermission):
