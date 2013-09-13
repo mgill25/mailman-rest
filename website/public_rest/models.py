@@ -285,6 +285,9 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
             u.save()
         # Make a subscription relationship
         s = self.membership_set.create(user=u, address=u.preferred_email, role=role)
+        s.preferences = MembershipPrefs()
+        s.preferences.save()
+        s.save()
         return s
 
     def unsubscribe(self, address):
@@ -543,6 +546,8 @@ class MembershipPrefs(BasePrefs):
     """
     Besides being associated with their own Owner/Moderator/Member,
     each preference object is also associated with Membership.
+
+    Membership Preferences are not linked up on their own with Memberships!
     """
     object_type = 'preferences'
     adaptor = PreferencesAdaptor
@@ -600,15 +605,6 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
     @property
     def fqdn_listname(self):
         return self.mlist.fqdn_listname
-
-    def save(self, *args, **kwargs):
-        """Save a membership and its preferences."""
-        if self.pk is None:
-            super(Membership, self).save(*args, **kwargs)
-            self.preferences = MembershipPrefs()
-            self.preferences.save()
-        else:
-            super(Membership, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return '{0} on {1}'.format(self.address, self.mlist.fqdn_listname)

@@ -30,6 +30,7 @@ logging.disable(logging.INFO)   # logging.DEBUG
 
 class ModelTest(TestCase):
 
+    '''
     @classmethod
     def setUpClass(cls):
         """Setup a fresh copy of the Mailman core database."""
@@ -63,6 +64,7 @@ class ModelTest(TestCase):
         # Stop -core
         stop_command = os.path.abspath(os.path.join(settings.PROJECT_PATH, '..','stop_mailman'))
         os.system(stop_command)
+    '''
 
     def setUp(self):
         """
@@ -80,10 +82,9 @@ class ModelTest(TestCase):
         super(ModelTest, self).setUp()
 
     def tearDown(self):
-        # delete user
         admin_user = User.objects.get(display_name='Test Admin')
         admin_user.delete()
-        # delete domain
+        for l in MailingList.objects.all(): l.delete()
         d = Domain.objects.get(mail_host='mail.example.com')
         d.delete()
         super(ModelTest, self).tearDown()
@@ -100,9 +101,10 @@ class ModelTest(TestCase):
         """
         Associate the user and list with a subscription.
         """
-        email, created = Email.objects.get_or_create(address='admin@example.com')
+        email = user.preferred_email
         sub = Membership.objects.create(user=user, mlist=mlist, address=email, role=role)
         return sub
+
 
     def test_user_password(self):
         u = User.objects.get(display_name='Test Admin')
@@ -204,10 +206,12 @@ class ModelTest(TestCase):
 
     def test_subscriber_preferences_empty(self):
         domain, mlist = self.setup_list()
-        user = User.objects.get(display_name='Test Admin')
-        sub = self.create_subscription(user, mlist, 'member')
+        sub = mlist.add_member('test@mail.example.com')
         prefs = sub.preferences
+
+        self.assertIsInstance(sub, Membership)
         self.assertIsNotNone(prefs)
+        self.assertIsInstance(prefs, MembershipPrefs)
         self.assertIsInstance(prefs, MembershipPrefs)
         self.assertIsNone(prefs['receive_list_copy'])
         self.assertIsNone(prefs['acknowledge_posts'])
@@ -218,18 +222,25 @@ class ModelTest(TestCase):
         self.assertEqual(prefs['delivery_status'], '')
         self.assertEqual(prefs['preferred_language'], '')
 
-    def test_subscriber_preferences_persistance(self):
+    def test_subscriber_preferences_persistence(self):
         """Test that membership preferences are actually linked to the object itself."""
         domain, mlist = self.setup_list()
-        user = User.objects.get(display_name='Test Admin')
-        sub = self.create_subscription(user, mlist, 'owner')
+        self.assertEqual(MembershipPrefs.objects.count(), 0)
+
+        sub = mlist.add_member('test2@mail.example.com')
         prefs = sub.preferences
+
+        self.assertEqual(MembershipPrefs.objects.count(), 1)
+        self.assertIsInstance(sub, Membership)
         self.assertIsNotNone(prefs)
-        membership = Membership.objects.get(user__display_name='Test Admin',
-                                            mlist__fqdn_listname='test@mail.example.com',
-                                            role='owner')
-        self.assertIsNotNone(membership.preferences)
-        self.assertIsInstance(membership.preferences, MembershipPrefs)
+        self.assertIsInstance(prefs, MembershipPrefs)
+
+        sub = Membership.objects.get(address__address='test2@mail.example.com',
+                                            mlist=mlist,
+                                            role='member')
+        self.assertIsNotNone(sub.preferences)
+        self.assertIsInstance(sub.preferences, MembershipPrefs)
+
 
     def test_list_settings(self):
         domain, mlist = self.setup_list()
@@ -485,6 +496,7 @@ class DRFTestCase(APILiveServerTestCase):
 
     def test_permissions(self):
         pass
+
 
 '''
 class CoreTest(TestCase):

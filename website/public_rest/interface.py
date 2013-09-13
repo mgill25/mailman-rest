@@ -255,6 +255,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
         if self.object_type == 'listsettings':
             data['fqdn_listname'] = self.fqdn_listname
         if self.object_type == 'preferences':
+            # Assuming membership is already related at the time of backup
             data['address'] = self.membership.address.address
             data['list_id'] = self.membership.fqdn_listname
         if self.object_type == 'user':
