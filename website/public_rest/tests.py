@@ -430,6 +430,7 @@ class DRFTestCase(APILiveServerTestCase):
 
 
     def test_pagination_on_custom_endpoint(self):
+        """All secondary/tertiary... endpoints should have paginated responses"""
         # no members initially
         res = self.client.get('/api/lists/1/members/')
         self.assertEqual(res.status_code, 200)
@@ -442,6 +443,7 @@ class DRFTestCase(APILiveServerTestCase):
         self.assertEqual(res.status_code, 201)
         res = self.client.get('/api/lists/1/members/')
         res_json = json.loads(res.content)
+        self.assertIsInstance(res_json, dict)
         self.assertTrue(res_json.has_key('count'))
         self.assertTrue(res_json.has_key('prev'))
         self.assertTrue(res_json.has_key('next'))
@@ -466,14 +468,123 @@ class DRFTestCase(APILiveServerTestCase):
         self.assertEqual(res.status_code, 201)
 
 
+    def test_get_individual_subscription(self):
+        res = self.client.post('/api/lists/1/members/', data={'address':'newmember@foobar.com'})
+        self.assertEqual(res.status_code, 201)
+
+        # get the subscription at its own url
+        res = self.client.get('/api/lists/1/members/newmember@foobar.com/')
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+        self.assertEqual(res_json['role'], 'member')
+        self.assertIsInstance(res_json['mlist'], dict)
+        mlist_path = urlsplit(res_json['mlist']['url']).path
+        self.assertEqual(mlist_path, '/api/lists/1/')
+        user_path = urlsplit(res_json['user']).path
+        self.assertEqual(user_path, '/api/users/2/')
+
+
+    def test_subscription_preferences(self):
+        res = self.client.post('/api/lists/1/members/', data={'address':'newmember@foobar.com'})
+        self.assertEqual(res.status_code, 201)
+
+        res = self.client.get('/api/lists/1/members/newmember@foobar.com/preferences/')
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+
+        d = {"acknowledge_posts": None,
+            "delivery_status": "",
+            "delivery_mode": "",
+            "hide_address": None,
+            "preferred_language": "",
+            "receive_list_copy": None,
+            "receive_own_postings": None
+        }
+        for k, v in d.items():
+            self.assertEqual(res_json[k], v)
+
+        self.assertIsNotNone(res_json['url'])
+
+
+    def test_update_subscription_preferences(self):
+        """Update all or some of the preferences"""
+        res = self.client.post('/api/lists/1/members/', data={'address':'newmember@foobar.com'})
+        self.assertEqual(res.status_code, 201)
+
+        res = self.client.get('/api/lists/1/members/newmember@foobar.com/preferences/')
+        self.assertEqual(res.status_code, 200)
+
+        data={'preferred_language': 'Mandarin',
+              'acknowledge_posts': True,
+              'delivery_mode': 'plaintext_digests',
+              'delivery_status': 'by_user',
+              'hide_address': False,
+              'preferred_language': 'ja',
+              'receive_list_copy': True,
+              'receive_own_postings': False
+             }
+
+        res = self.client.put('/api/lists/1/members/newmember@foobar.com/preferences/',
+                data=data)
+        self.assertEqual(res.status_code, 200)
+
+        res = self.client.get('/api/lists/1/members/newmember@foobar.com/preferences/')
+        res_json = json.loads(res.content)
+
+        for k, v in data.items():
+            self.assertEqual(res_json[k], v)
+
+        # partial update via PATCH
+        res = self.client.patch('/api/lists/1/members/newmember@foobar.com/preferences/',
+                data={'acknowledge_posts': False})
+        self.assertEqual(res.status_code, 204)
+
+        res = self.client.get('/api/lists/1/members/newmember@foobar.com/preferences/')
+        res_json = json.loads(res.content)
+        self.assertEqual(res_json['acknowledge_posts'], False)
+
+
     def test_list_unsubscription(self):
-        pass
+        """Unsubscription from a mailing list"""
+        res = self.client.post('/api/lists/1/members/', data={'address':'newmember@foobar.com'})
+        self.assertEqual(res.status_code, 201)
+
+        # Can GET
+        res = self.client.get('/api/lists/1/members/newmember@foobar.com/')
+        self.assertEqual(res.status_code, 200)
+
+        # now unsubscribe
+        res = self.client.delete('/api/lists/1/members/newmember@foobar.com/')
+        self.assertEqual(res.status_code, 204)
+
+        # further GETs will return 404
+        res = self.client.get('/api/lists/1/members/1/')
+        self.assertEqual(res.status_code, 404)
+
 
     def test_get_user_collection(self):
-        pass
+        res = self.client.get('/api/users/')
+        res_json = json.loads(res.content)
+
+        self.assertIsInstance(res_json, dict)
+        self.assertEqual(res_json['count'], 1)
+        self.assertEqual(res_json['next'], None)
+        self.assertEqual(res_json['previous'], None)
+        self.assertIsInstance(res_json['results'], list)
+        self.assertEqual(len(res_json['results']), 1)
+
+        user = res_json['results'][0]
+
+        self.assertEqual(user['display_name'], 'Test Admin')
+        self.assertEqual(user['is_superuser'], True)
+        self.assertEqual(urlsplit(user['preferred_email']).path, '/api/emails/1/')
+        self.assertEqual(urlsplit(user['url']).path, '/api/users/1/')
+
 
     def test_get_individual_user(self):
         pass
+        #res = self.client.get('/api/users/1/')
+        #res_json = json.loads(res.content)
 
     def test_pos_new_user(self):
         pass
