@@ -285,9 +285,6 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
             u.save()
         # Make a subscription relationship
         s = self.membership_set.create(user=u, address=u.preferred_email, role=role)
-        s.preferences = MembershipPrefs()
-        s.preferences.save()
-        s.save()
         return s
 
     def unsubscribe(self, address):
@@ -553,8 +550,7 @@ class MembershipPrefs(BasePrefs):
     adaptor = PreferencesAdaptor
     lookup_field = 'address'
 
-    def __unicode__(self):
-        return self.membership.address.address
+    membership = models.OneToOneField('Membership', null=True)
 
 
 class Membership(BaseModel, AbstractRemotelyBackedObject):
@@ -585,7 +581,6 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     mlist = models.ForeignKey(MailingList, null=True)
     address = models.ForeignKey(Email, null=True)
-    preferences = models.OneToOneField(MembershipPrefs, null=True)
 
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=MEMBER)
 
@@ -603,8 +598,21 @@ class Membership(BaseModel, AbstractRemotelyBackedObject):
         self.delete()
 
     @property
+    def preferences(self):
+        return self.membershipprefs
+
+    @property
     def fqdn_listname(self):
         return self.mlist.fqdn_listname
 
     def __unicode__(self):
         return '{0} on {1}'.format(self.address, self.mlist.fqdn_listname)
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            super(Membership, self).save(*args, **kwargs)
+            membershipprefs = MembershipPrefs(membership=self)
+            membershipprefs.save()
+            self.membershipprefs = membershipprefs
+        else:
+            super(Membership, self).save(*args, **kwargs)

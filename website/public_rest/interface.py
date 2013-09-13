@@ -375,7 +375,6 @@ class AbstractRemotelyBackedDefault(AbstractRemotelyBackedObject):
                 pass
             else:
                 self.patch_backup(backing_data)
-            super(AbstractRemotelyBackedDefault, self).process_on_save_signal(sender, **kwargs)
         except MailmanConnectionError as e:
             logger.info("Could not back up properly: {0}".format(e))
 
