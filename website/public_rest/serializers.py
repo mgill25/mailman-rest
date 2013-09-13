@@ -36,7 +36,6 @@ class UserDetailSerializer(serializers.HyperlinkedModelSerializer):
         model = User
         fields = ('url', 'display_name', 'is_superuser', 'emails',
                   'preferred_email',
-                  'membership_set',
                 )
 
 
@@ -44,10 +43,13 @@ class MembershipListSerializer(serializers.HyperlinkedModelSerializer):
 
     mlist = serializers.RelatedField()
     user = serializers.RelatedField()
+    address =serializers.RelatedField()
 
     class Meta:
         model = Membership
-        fields = ('url', 'address', 'role', 'user', 'mlist',)
+        fields = (
+                #'url',
+                'address', 'role', 'user', 'mlist',)
 
 
 class MembershipDetailSerializer(serializers.HyperlinkedModelSerializer):

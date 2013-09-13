@@ -56,6 +56,16 @@ class UserViewSet(BaseModelViewSet):
                                         context={'request': request})
             return Response(serializer.data, status=200)
 
+    @link(permission_classes=[IsOwnerOrModeratorPermission])
+    def subscriptions(self, request, *args, **kwargs):
+        """All subscriptions for a given user"""
+        user = self.get_object()
+        memberships = user.membership_set.all()
+        serializer = MembershipListSerializer(memberships,
+                many=True,
+                context={'request': request})
+        return Response(serializer.data, status=200)
+
     def retrieve(self, request, pk=None):
         """User detail view"""
         queryset = self.queryset
@@ -201,7 +211,7 @@ class MembershipViewSet(BaseModelViewSet):
         membership = Membership(mlist=mlist, address=email, role=role, user=user)
         membership.save()
         if created:
-            serializer = MembershipSerializer(membership, context={'request': request})
+            serializer = MembershipListSerializer(membership, context={'request': request})
             return Response(data=serializer.data, status=201)
         else:
             return Response(data='Already Exists', status=400)
@@ -362,7 +372,6 @@ class MailingListViewSet(BaseModelViewSet):
             if address:
                 logger.debug("Address: {0}".format(address))
                 qset = getattr(mlist, 'add_{0}'.format(role))(address)
-
                 serializer = MembershipDetailSerializer(qset,
                                                         context={'request': request})
                 return Response(serializer.data, status=201)
@@ -379,7 +388,6 @@ class MailingListViewSet(BaseModelViewSet):
                 if user:
                     address = user.preferred_email.address
                     qset = getattr(mlist, 'add_{0}'.format(role))(address)
-
                 serializer = MembershipDetailSerializer(qset,
                                                         context={'request': request})
                 return Response(serializer.data, status=201)

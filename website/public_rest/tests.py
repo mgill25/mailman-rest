@@ -582,12 +582,55 @@ class DRFTestCase(APILiveServerTestCase):
 
 
     def test_get_individual_user(self):
-        pass
-        #res = self.client.get('/api/users/1/')
-        #res_json = json.loads(res.content)
+        res = self.client.get('/api/users/1/')
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+        self.assertEqual(res_json['display_name'], 'Test Admin')
+        self.assertEqual(res_json['is_superuser'], True)
+        self.assertEqual(urlsplit(res_json['preferred_email']).path, '/api/emails/1/')
+        self.assertEqual(urlsplit(res_json['url']).path, '/api/users/1/')
+        self.assertIsInstance(res_json['emails'], list)
+        self.assertEqual(res_json['emails'][0], 'admin@test.com')
 
-    def test_pos_new_user(self):
-        pass
+
+    def test_create_new_user(self):
+        res = self.client.post('/api/users/', data={'display_name':'Thor',
+                                                    'email':'son_of_odin@asgard.com',
+                                                    'password':'Mjöllnir'})
+        self.assertEqual(res.status_code, 201)
+        res_json = json.loads(res.content)
+        self.assertEqual(res_json['display_name'], 'Thor')
+        self.assertEqual(res_json['is_superuser'], False)
+
+
+    def test_get_user_subscriptions(self):
+        """Get all the subscriptions related to a user"""
+
+        # Create a user
+        res = self.client.post('/api/users/', data={'display_name':'Odin',
+                                                    'email': 'boss@asgard.com',
+                                                    'password': 'Wednesday'})
+        self.assertEqual(res.status_code, 201)
+        user_path = urlsplit(json.loads(res.content)['url']).path
+
+        # Create a new subscription related to this user
+        res = self.client.post('/api/lists/1/members/', data={'user':'Odin'})  # will use the preferred_email
+        self.assertEqual(res.status_code, 201)
+
+        # now test
+        res = self.client.get('{0}subscriptions/'.format(user_path))
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+        logger.error("\nUser Subscriptions:{0}".format(res_json))
+        #XXX: Ideally, this result should be paginated, but we're
+        # skipping that for the real testing now.
+        self.assertIsInstance(res_json, list)
+        sub1 = res_json[0]
+        self.assertEqual(sub1['address'], 'boss@asgard.com')
+        self.assertEqual(sub1['role'], 'member')
+        self.assertEqual(sub1['user'], 'Odin')
+        self.assertEqual(sub1['mlist'], 'test_list')
+
 
     def test_delete_user(self):
         pass
