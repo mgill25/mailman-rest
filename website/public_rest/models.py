@@ -283,8 +283,11 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
                                                 email=address,
                                                 password=password)
             u.save()
+            email = u.preferred_email
+        else:
+            email = u.email_set.get(address=address)
         # Make a subscription relationship
-        s = self.membership_set.create(user=u, address=u.preferred_email, role=role)
+        s = self.membership_set.create(user=u, address=email, role=role)
         return s
 
     def unsubscribe(self, address):

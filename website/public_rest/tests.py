@@ -468,6 +468,58 @@ class DRFTestCase(APILiveServerTestCase):
         self.assertEqual(res.status_code, 201)
 
 
+    def test_make_list_subscription_permissions(self):
+        """
+        Not everyone is allowed to just create any kind of memberships!
+        """
+        # Create a non-staff user and login
+        u = User.objects.create(display_name='RandomUser', email='random@user.com',
+                password='password')
+        u.add_email('rand1@email.com')
+        u.add_email('rand2@email.com')
+        u.add_email('rand3@email.com')
+
+        self.client.logout()
+        self.client.login(username='RandomUser', password='password')
+
+        res = self.client.post('/api/lists/1/members/')
+        self.assertEqual(res.status_code, 201)
+
+        res = self.client.post('/api/lists/1/members/', data={'address':'rand1@email.com'})
+        self.assertEqual(res.status_code, 201)
+
+        res = self.client.post('/api/lists/1/members/', data={'address':'rand2@email.com',
+                                                              'user': 'RandomUser'})
+        self.assertEqual(res.status_code, 201)
+
+        # Invalid data
+        res = self.client.post('/api/lists/1/members/', data={'address':'not_my_email@gmail.com'})
+        self.assertEqual(res.status_code, 403)
+
+        res = self.client.post('/api/lists/1/members/', data={'user':'IDoNotExist'})
+        self.assertEqual(res.status_code, 404)
+
+        res = self.client.post('/api/lists/1/members/', data={'user':'IDoNotExist',
+                                                              'address': 'not_my_email@gmail.com'})
+
+        res = self.client.post('/api/lists/1/members/', data={'user': 'RandomUser',
+                                                              'address':'admin@test.com'})
+        self.assertEqual(res.status_code, 400)
+
+        # valid data (but no permissions)
+        res = self.client.post('/api/lists/1/members/', data={'user':'Test Admin',
+                                                              'address': 'admin@test.com'})
+        self.assertEqual(res.status_code, 403)
+
+        res = self.client.post('/api/lists/1/members/', data={'user':'Test Admin'})
+        self.assertEqual(res.status_code, 403)
+
+        res = self.client.post('/api/lists/1/members/', data={'address':'admin@test.com'})
+        self.assertEqual(res.status_code, 403)
+
+        self.client.logout()
+
+
     def test_get_individual_subscription(self):
         res = self.client.post('/api/lists/1/members/', data={'address':'newmember@foobar.com'})
         self.assertEqual(res.status_code, 201)
@@ -621,7 +673,7 @@ class DRFTestCase(APILiveServerTestCase):
         res = self.client.get('{0}subscriptions/'.format(user_path))
         self.assertEqual(res.status_code, 200)
         res_json = json.loads(res.content)
-        logger.error("\nUser Subscriptions:{0}".format(res_json))
+        #logger.error("\nUser Subscriptions:{0}".format(res_json))
         #XXX: Ideally, this result should be paginated, but we're
         # skipping that for the real testing now.
         self.assertIsInstance(res_json, list)

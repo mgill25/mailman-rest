@@ -351,51 +351,59 @@ class MailingListViewSet(BaseModelViewSet):
                 return Response(data=rv, status=200)
 
         elif request.method == 'POST':
-            # If an existing user's display_name is provided,
-            # use that user's preferred_email for subscription
+            """
+            A list owner or moderator can provide an email address or a username
+            to make a subscription to a mailing list that is already existing.
 
+            If the incoming user is not an owner or moderator, we assume it is
+            just a regular user (logged in) wanting to subscribe to our list.
+            Only thing the user needs to provide is an email address.
+            """
             address = request.DATA.get('address', None)
             display_name = request.DATA.get('user', None)
+            user = request.user
+
+            # Check if user is an owner or mod
+            is_list_staff = False
+            user_mails = [email for email in user.emails]
+            owner_mails = [mem.address for mem in mlist.owners]
+            mod_mails = [mem.address for mem in mlist.moderators]
+            common = [email for email in user_mails if
+                    email in owner_mails or email in mod_mails]
+
+            if len(common) != 0:
+                is_list_staff= True
+
+            if address is None and display_name is None:
+                address = user.preferred_email.address
 
             if address and display_name:
-                try:
-                    user = User.objects.get(display_name=display_name)
-                except User.DoesNotExist:
-                    return Response('User not found', status=404)
-                except Exception as e:
-                    return Response('Failed to get user', status=500)
+                u = get_object_or_404(User, display_name=display_name)
+                if not is_list_staff and u.display_name != user.display_name:
+                    return Response('You are not the user for the given display name', status=403)
 
-                user_addresses = [email.addr for email in user.email_set.all()]
+                user_addresses = [email.address for email in u.emails]
                 if address not in user_addresses:
-                    return Response('Given address is not related to User', status=400)
+                    return Response('Email address is not related to User', status=400)
 
-            if address:
-                logger.debug("Address: {0}".format(address))
-                qset = getattr(mlist, 'add_{0}'.format(role))(address)
-                serializer = MembershipDetailSerializer(qset,
-                                                        context={'request': request})
-                return Response(serializer.data, status=201)
+            if address and not display_name:
+                user_addresses = [email.address for email in user.emails]
+                if not is_list_staff and address not in user_addresses:
+                    return Response('Email address not associated with you', status=403)
 
-            elif display_name:
-                try:
-                    user = User.objects.get(display_name=display_name)
-                except User.DoesNotExist:
-                    return Response('User not found', status=404)
-                except Exception as e:
-                    return Response('Failed to get user', status=500)
+            elif display_name and not address:
+                u = get_object_or_404(User, display_name=display_name)
+                if not is_list_staff and u.display_name != user.display_name:
+                    return Response('You are not the user for the given display name', status=403)
+                address = u.preferred_email.address
 
-                # Use preferred address if no address explicitly provided
-                if user:
-                    address = user.preferred_email.address
-                    qset = getattr(mlist, 'add_{0}'.format(role))(address)
-                serializer = MembershipDetailSerializer(qset,
-                                                        context={'request': request})
-                return Response(serializer.data, status=201)
+            logger.debug("Address: {0}".format(address))
+            qset = getattr(mlist, 'add_{0}'.format(role))(address)
+            serializer = MembershipDetailSerializer(qset,
+                                                    context={'request': request})
+            return Response(serializer.data, status=201)
 
-            else:
-                return Response('Invalid or Incomplete data', status=400)
-
-    @action(methods=['GET', 'POST'], permission_classes=[IsOwnerOrModeratorPermission])
+    @action(methods=['GET', 'POST'], permission_classes=[IsAuthenticatedOrReadOnly])
     def members(self, request, *args, **kwargs):
         kwargs['role'] = 'member'
         return self._add_membership(request, *args, **kwargs)
