@@ -488,6 +488,12 @@ class DRFTestCase(APILiveServerTestCase):
         res = self.client.post('/api/lists/1/members/', data={'address':'rand1@email.com'})
         self.assertEqual(res.status_code, 201)
 
+        res = self.client.post('/api/lists/1/owners/', data={'address':'rand1@email.com'})
+        self.assertEqual(res.status_code, 403)
+
+        res = self.client.post('/api/lists/1/moderators/', data={'address':'rand1@email.com'})
+        self.assertEqual(res.status_code, 403)
+
         res = self.client.post('/api/lists/1/members/', data={'address':'rand2@email.com',
                                                               'user': 'RandomUser'})
         self.assertEqual(res.status_code, 201)
