@@ -763,6 +763,57 @@ class DRFTestCase(APILiveServerTestCase):
         self.assertEqual(res.status_code, 404)
 
 
+    def test_verify_email(self):
+        res = self.client.post('/api/users/', data={'display_name': 'Arjun',
+                                                    'email': 'sharpshooter@pandavas.com',
+                                                    'password':'ComeAtMeBro!'})
+        self.assertEqual(res.status_code, 201)
+        email_path = urlsplit(json.loads(res.content)['preferred_email']).path
+        # unverified
+        res = self.client.get(email_path)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(json.loads(res.content)['verified'], False)
+
+        # Lets verify it
+        res = self.client.post('{0}verify/'.format(email_path), data={})
+        self.assertEqual(res.status_code, 204)
+
+        # check
+        res = self.client.get(email_path)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(json.loads(res.content)['verified'], True)
+
+
+    def test_unverify_email(self):
+        res = self.client.post('/api/users/', data={'display_name': 'Harry Dresden',
+                                                    'email': 'warden@chicago.com',
+                                                    'password':'HellsBells!'})
+        self.assertEqual(res.status_code, 201)
+        email_path = urlsplit(json.loads(res.content)['preferred_email']).path
+        # unverified
+        res = self.client.get(email_path)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(json.loads(res.content)['verified'], False)
+
+        # Lets verify it
+        res = self.client.post('{0}verify/'.format(email_path), data={})
+        self.assertEqual(res.status_code, 204)
+
+        # check
+        res = self.client.get(email_path)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(json.loads(res.content)['verified'], True)
+
+        # now unverify it.
+        res = self.client.post('{0}unverify/'.format(email_path), data={})
+        self.assertEqual(res.status_code, 204)
+
+        # check
+        res = self.client.get(email_path)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(json.loads(res.content)['verified'], False)
+
+
     def test_get_user_preferences(self):
         pass
 
