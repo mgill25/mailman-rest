@@ -691,7 +691,7 @@ class DRFTestCase(APILiveServerTestCase):
         self.assertEqual(sub1['mlist'], 'test_list')
 
 
-    def test_user_subscriptions(self):
+    def test_user_subscriptions_permissions(self):
         """
         Admin can view all of them, but list owners/moderators
         can only view subscriptions related to their own lists for a user.
@@ -763,6 +763,8 @@ class DRFTestCase(APILiveServerTestCase):
 
         res = self.client.get('{0}subscriptions/'.format(user_path))
         self.assertEqual(res.status_code, 403)
+
+        self.client.logout()
 
 
     def test_delete_user(self):
