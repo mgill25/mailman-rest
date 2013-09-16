@@ -80,7 +80,8 @@ class UserViewSet(BaseModelViewSet):
 
             logger.debug("user: {0}".format(user))
 
-            memberships = user.membership_set.filter(mlist__in=mlist_filter)
+            memberships = user.membership_set.filter(mlist__in=mlist_filter,
+                    role='member')
 
         serializer = MembershipListSerializer(memberships,
                                             many=True,

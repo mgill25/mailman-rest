@@ -691,6 +691,80 @@ class DRFTestCase(APILiveServerTestCase):
         self.assertEqual(sub1['mlist'], 'test_list')
 
 
+    def test_user_subscriptions(self):
+        """
+        Admin can view all of them, but list owners/moderators
+        can only view subscriptions related to their own lists for a user.
+        """
+        # Create a new list, with a new owner etc.
+        res = self.client.post('/api/lists/', data={'list_name':'newlist',
+            'mail_host': 'mail.example.com'})
+        self.assertEqual(res.status_code, 201)
+        res_json = json.loads(res.content)
+        list_path = urlsplit(res_json['url']).path
+
+        # Setup a few users to test things later.
+        u = self.client.post('/api/users/', data=dict(display_name='newuser',
+                                                       password='password',
+                                                       email='newuser@foo.com'))
+        self.assertEqual(u.status_code, 201)
+        res_json = json.loads(u.content)
+        user_path = urlsplit(res_json['url']).path
+
+        # Add the user as an owner and a subscriber
+        res = self.client.post('{0}owners/'.format(list_path), data={'address': 'newuser@foo.com'})
+        res = self.client.post('{0}members/'.format(list_path), data={'address': 'newuser@foo.com'})
+        self.assertEqual(res.status_code,201)
+
+        # If we have an owner/mod for a separate list, she can not
+        # view this user's subscription for newlist.
+        u2 = self.client.post('/api/users/', data=dict(display_name='separate_user',
+                                                        password='password',
+                                                        email='separate@user.com'))
+        self.assertEqual(u2.status_code, 201)
+
+        # Regular user who is not a subscriber to any list at all.
+        u3 = self.client.post('/api/users/', data=dict(display_name='RegularJoe',
+                                                       password='password',
+                                                       email='regular@user.com'))
+        self.assertEqual(u3.status_code, 201)
+
+
+        newlist = self.client.post('/api/lists/', data={'mail_host': 'mail.example.com',
+            'list_name': 'newlist2'})
+        self.assertEqual(newlist.status_code, 201)
+        res_json = json.loads(newlist.content)
+        newlist_path = urlsplit(res_json['url']).path
+
+        # add as owner
+        res = self.client.post('{0}owners/'.format(newlist_path), data={'address': 'separate@user.com'})
+        self.assertEqual(res.status_code, 201)
+
+        # newuser can only view subscriptions for users on newlist.
+        self.client.logout()
+        self.client.login(username='newuser', password='password')
+
+        res = self.client.get('{0}subscriptions/'.format(user_path))
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+        self.assertEqual(len(res_json), 1)
+        self.assertEqual(res_json[0]['address'], 'newuser@foo.com')
+
+        self.client.logout()
+        self.client.login(username='separate_user', password='password')
+        res = self.client.get('{0}subscriptions/'.format(user_path))
+        self.assertEqual(res.status_code, 200)
+        res_json = json.loads(res.content)
+        self.assertEqual(len(res_json), 0)
+
+        # Regular members just get 403
+        self.client.logout()
+        self.client.login(username='RegularJoe', password='password')
+
+        res = self.client.get('{0}subscriptions/'.format(user_path))
+        self.assertEqual(res.status_code, 403)
+
+
     def test_delete_user(self):
         # Create a user
         res = self.client.post('/api/users/', data={'display_name': 'Zeus',
