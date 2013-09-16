@@ -65,10 +65,9 @@ class UserViewSet(BaseModelViewSet):
         on the list owned by requesting owner/moderator.
         """
         user = self.get_object()
+        memberships = user.membership_set.filter(role='member')
 
-        if request.user.is_superuser:
-            memberships = user.membership_set.all()     # Admin sees everything
-        else:
+        if not request.user.is_superuser:
             # Check if request.user is a staff member
             mems = request.user.membership_set.all()
             mailinglists = set([m.mlist for m in mems])
@@ -78,11 +77,9 @@ class UserViewSet(BaseModelViewSet):
                 if utils.is_list_staff(request.user, mlist):
                     mlist_filter.append(mlist)
 
-            logger.debug("user: {0}".format(user))
+            memberships = memberships.filter(mlist__in=mlist_filter)
 
-            memberships = user.membership_set.filter(mlist__in=mlist_filter,
-                    role='member')
-
+        logger.debug("user: {0}".format(user))
         serializer = MembershipListSerializer(memberships,
                                             many=True,
                                             context={'request': request})
