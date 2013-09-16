@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 from public_rest.serializers import *
 from public_rest.models import *
 from public_rest.permissions import *
+from public_rest import utils
 
 #logging
 logger = logging.getLogger(__name__)
@@ -58,12 +59,32 @@ class UserViewSet(BaseModelViewSet):
 
     @link(permission_classes=[IsOwnerOrModeratorPermission])
     def subscriptions(self, request, *args, **kwargs):
-        """All subscriptions for a given user"""
+        #TODO: Figure this out.
+        """
+        All subscriptions for a given user
+        on the list owned by requesting owner/moderator.
+        """
         user = self.get_object()
-        memberships = user.membership_set.all()
+
+        if request.user.is_superuser:
+            memberships = user.membership_set.all()     # Admin sees everything
+        else:
+            # Check if request.user is a staff member
+            mems = request.user.membership_set.all()
+            mailinglists = set([m.mlist for m in mems])
+            mlist_filter = []
+
+            for mlist in mailinglists:
+                if utils.is_list_staff(request.user, mlist):
+                    mlist_filter.append(mlist)
+
+            logger.debug("user: {0}".format(user))
+
+            memberships = user.membership_set.filter(mlist__in=mlist_filter)
+
         serializer = MembershipListSerializer(memberships,
-                many=True,
-                context={'request': request})
+                                            many=True,
+                                            context={'request': request})
         return Response(serializer.data, status=200)
 
     def retrieve(self, request, pk=None):
@@ -364,16 +385,7 @@ class MailingListViewSet(BaseModelViewSet):
             user = request.user
 
             # Check if user is an owner or mod
-            is_list_staff = False
-            user_mails = [email for email in user.emails]
-            owner_mails = [mem.address for mem in mlist.owners]
-            mod_mails = [mem.address for mem in mlist.moderators]
-            common = [email for email in user_mails if
-                    email in owner_mails or email in mod_mails]
-
-            if len(common) != 0:
-                is_list_staff= True
-
+            is_list_staff = utils.is_list_staff(user, mlist)
             if address is None and display_name is None:
                 address = user.preferred_email.address
 

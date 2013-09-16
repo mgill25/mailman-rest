@@ -24,3 +24,12 @@ def get_related_attribute(instance, attr_string):
             attribute = getattr(attribute, sub_strings, None)
     return attribute
 
+def is_list_staff(user, mlist):
+    user_mails = [email for email in user.emails]
+    owner_mails = [mem.address for mem in mlist.owners]
+    mod_mails = [mem.address for mem in mlist.moderators]
+    common = [email for email in user_mails if
+    email in owner_mails or email in mod_mails]
+    if len(common) != 0:
+        return True
+    return False
