@@ -5,7 +5,6 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import link, action
-from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.viewsets import ModelViewSet
@@ -60,7 +59,6 @@ class UserViewSet(BaseModelViewSet):
 
     @link(permission_classes=[IsOwnerOrModeratorPermission])
     def subscriptions(self, request, *args, **kwargs):
-        #TODO: Figure this out.
         """
         All subscriptions for a given user
         on the list owned by requesting owner/moderator.
@@ -283,6 +281,13 @@ class MembershipPrefsViewSet(BaseModelViewSet):
         self.check_object_permissions(self.request, obj)
         return prefs
 
+    def retrieve(self, request, list_id=None, address=None, role=None):
+        kwds = { 'list_id': list_id, 'address': address, 'role': role }
+        url_data = { 'url': reverse('membershipprefs-detail', request=request, kwargs=kwds) }
+        serializer = self.serializer_class(self.get_object(), request=request)
+        serializer.data.update(url_data)
+        return Response(serializer.data, status=200)
+
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
         try:
@@ -351,7 +356,7 @@ class MailingListViewSet(BaseModelViewSet):
             return Response(data='Domain not found', status=404)
 
         mlist = domain.create_list(request.DATA['list_name'])
-        # TODO: When created, every list must have an owner
+        # When created, every list must have an owner
         mlist.add_owner(request.user.preferred_email.address)
         serializer = MailingListSerializer(mlist,
                 context={'request': request})
