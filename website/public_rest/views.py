@@ -247,9 +247,11 @@ class MembershipViewSet(BaseModelViewSet):
         serializer = MembershipDetailSerializer(membership,
                         context={'request': request})
 
-        kwds = { 'role': role, 'list_id': list_id, 'address': address }
-        url_data = { 'url': reverse('membership-detail', request=request, **kwds) }
-        return Response(serializer.data.update(url_data))
+        kwds = { 'role': role+'s', 'list_id': list_id, 'address': address }
+        url_data = { 'url': reverse('membership-detail', request=request, kwargs=kwds) }
+        url_data.update({'preferences': url_data['url'] + 'preferences/'})
+        serializer.data.update(url_data)
+        return Response(serializer.data, status=200)
 
     def destroy(self, request, role=None, list_id=None, address=None):
         role = role[:-1]
