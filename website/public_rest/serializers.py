@@ -15,6 +15,10 @@ class _PartialMailingListSerializer(serializers.HyperlinkedModelSerializer):
         model = MailingList
         fields = ('url', 'fqdn_listname')
 
+class _PartialEmailSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Email
+        fields = ('url', 'address')
 
 #################################################################
 
@@ -43,7 +47,7 @@ class MembershipListSerializer(serializers.HyperlinkedModelSerializer):
 
     mlist = serializers.RelatedField()
     user = serializers.RelatedField()
-    address =serializers.RelatedField()
+    address = serializers.RelatedField()
 
     class Meta:
         model = Membership
@@ -55,12 +59,14 @@ class MembershipListSerializer(serializers.HyperlinkedModelSerializer):
 class MembershipDetailSerializer(serializers.HyperlinkedModelSerializer):
     mlist = _PartialMailingListSerializer()
     user = serializers.HyperlinkedIdentityField(view_name='user-detail')
+    address = _PartialEmailSerializer()
 
     class Meta:
         model = Membership
         fields = (
                 #'url',
-                'address', 'role', 'user', 'mlist',)
+                'address', 'role', 'user', 'mlist',
+                )
 
 
 class PaginatedMembershipDetailSerializer(pagination.PaginationSerializer):
@@ -150,6 +156,7 @@ class EmailPreferenceSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = EmailPrefs
         fields = PREFERENCE_FIELDS
+        lookup_field = 'address'
 
 
 class MembershipPreferenceSerializer(serializers.HyperlinkedModelSerializer):

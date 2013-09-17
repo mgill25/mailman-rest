@@ -562,6 +562,7 @@ class DRFTestCase(APILiveServerTestCase):
         for k, v in d.items():
             self.assertEqual(res_json[k], v)
 
+        # Should have its own URL.
         self.assertIsNotNone(res_json['url'])
 
 

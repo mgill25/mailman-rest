@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import link, action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 
@@ -245,7 +246,10 @@ class MembershipViewSet(BaseModelViewSet):
         logger.debug("Membership: {0}".format(membership))
         serializer = MembershipDetailSerializer(membership,
                         context={'request': request})
-        return Response(serializer.data)
+
+        kwds = { 'role': role, 'list_id': list_id, 'address': address }
+        url_data = { 'url': reverse('membership-detail', request=request, **kwds) }
+        return Response(serializer.data.update(url_data))
 
     def destroy(self, request, role=None, list_id=None, address=None):
         role = role[:-1]
