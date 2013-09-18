@@ -284,7 +284,7 @@ class MembershipPrefsViewSet(BaseModelViewSet):
     def retrieve(self, request, list_id=None, address=None, role=None):
         kwds = { 'list_id': list_id, 'address': address, 'role': role }
         url_data = { 'url': reverse('membershipprefs-detail', request=request, kwargs=kwds) }
-        serializer = self.serializer_class(self.get_object(), request=request)
+        serializer = self.serializer_class(self.get_object(), context=dict(request=request))
         serializer.data.update(url_data)
         return Response(serializer.data, status=200)
 
