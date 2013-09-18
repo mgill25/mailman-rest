@@ -6,34 +6,27 @@ TODO
    Creating/Updating an `address` is not allowed.
             - Current workaround for PATCH - `disallow_updates` list to filter things out.
 
-2. [DONE] Uniform interface for *secondary* Core entities. List Settings are models on
-   their own, but are exposed via `lists/foo@bar.com/config` API etc.
-
-3. [DONE]Iterating over fields in an adaptor while creating images (in the process of
-   pulling things up) -- inside `filter`.
-
-4. Views of `Memberships` filtered by `List` and `Role`. Consider writing
-   separate serializers `ListOwnerSerializer`, `ListModeratorSerializer`, and
-   `ListSubscriberSerializer` for that.
-
-5. [DONE] `Preferences` for Users, Emails, Memberships etc. don't need to be "backed up"
+2. [DONE] `Preferences` for Users, Emails, Memberships etc. don't need to be "backed up"
    for the first time, since they are at their default values at both levels
    anyway.
         Related issue:
             - If something is not backed up, "updating" will have to look
               things up in another way, since we won't have a partial_url.
 
-6. Make API lookup generic. A `pk` that, if changes, will also affect lookups
+3. Make API lookup generic. A `pk` that, if changes, will also affect lookups
    in the related models. See: `ListSettingsViewSet.get_object`.
 
-7. Preferred_email automatic replacement if deleted; don't delete the last
+4. Preferred_email automatic replacement if deleted; don't delete the last
    remaining email address.
 
-8. DRF - Pagination for secndary endpoint responses, either from the `@action` decorator
+5. DRF - Pagination for secndary endpoint responses, either from the `@action` decorator
    or manually hooked up to the URLConf.
 
-9. DRF - Status Codes should be returned via rest_framework.status, not direct
+6. DRF - Status Codes should be returned via rest_framework.status, not direct
    ints.
+
+7. Permissions - Single configuration setup to control permission policy for 
+    both ``public_rest`` and ``Postorius``.
 
 -----
 1. `partial_URL` and `path` issues during the connection time.

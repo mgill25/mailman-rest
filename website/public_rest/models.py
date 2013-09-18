@@ -444,7 +444,6 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
                                            related_name='%(class)s_preferred')
 
     preferences = models.OneToOneField('UserPrefs', null=True)
-    #TODO peer_expiration_timestamp = models.DateTimeField(null=True)
 
     USERNAME_FIELD = 'display_name'
     REQUIRED_FIELDS = []
