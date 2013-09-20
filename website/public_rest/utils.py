@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import logging
+from functools import wraps
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
+import logging
 
 
 """
@@ -33,3 +35,18 @@ def is_list_staff(user, mlist):
     if len(common) != 0:
         return True
     return False
+
+def make_permission(check_func):
+    """
+    Use this decorator to create permissions.
+    A permission function should always return a bool.
+    """
+    def _wrap_checker(view_func):
+        @wraps(view_func)
+        def _checker(*args, **kwargs):
+            if check_func(*args, **kwargs):
+                return view_func(*args, **kwargs)
+            else:
+                raise PermissionDenied
+        return _checker
+    return _wrap_checker

@@ -3,9 +3,11 @@
 import logging
 
 from public_rest.models import Membership
+from public_rest.global_permissions import *
 from rest_framework import permissions
 
 logger = logging.getLogger(__name__)
+
 
 class BaseMembershipPermission(permissions.BasePermission):
     """
@@ -79,3 +81,4 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         elif request.user and request.user.is_staff:
             return True
         return False
+
