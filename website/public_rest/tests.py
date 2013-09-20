@@ -131,6 +131,24 @@ class ModelTest(TestCase):
         self.assertIsNotNone(prefs)
         self.assertIsInstance(prefs, EmailPrefs)
 
+    def test_preferred_email_delete(self):
+        """
+        A User must always have a preferred email associated with it.
+        """
+        user = User.objects.get(display_name='Test Admin')
+        self.assertEqual(user.email_set.count(), 1)
+        with self.assertRaises(ValueError):
+            user.preferred_email.delete()
+        self.assertEqual(user.email_set.count(), 1)
+        # And if we have more than one emails, deleting the preferred
+        # makes the next in line automatically take its place
+        user.add_email('another_email@example.com')
+        self.assertEqual(user.email_set.count(), 2)
+        email = user.preferred_email
+        email.delete()
+        self.assertEqual(user.email_set.count(), 1)
+        self.assertEqual(user.preferred_email.address, 'another_email@example.com')
+
     def test_preferred_email(self):
         u = User.objects.create(display_name='naeblis',
                                 email='pref@example.com',

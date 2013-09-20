@@ -25,9 +25,6 @@ TODO
 6. DRF - Status Codes should be returned via rest_framework.status, not direct
    ints.
 
-7. Permissions - Single configuration setup to control permission policy for 
-    both ``public_rest`` and ``Postorius``.
-
 -----
 1. `partial_URL` and `path` issues during the connection time.
 
