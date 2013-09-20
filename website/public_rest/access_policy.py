@@ -49,7 +49,7 @@ class ListModeratorsPolicy(IsOwnerOrModeratorPermission):
     pass
 
 
-class ListOwnerPolicy(IsOwnerOrReadOnlyPermission):
+class ListOwnerPolicy(IsValidOwnerPermission):
     pass
 
 
