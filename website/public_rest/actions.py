@@ -3,7 +3,7 @@
 
 from django.db.models.signals import post_save, pre_delete, post_delete
 from django.dispatch import receiver
-
+from public_rest.signals import sig_email, sig_user
 from public_rest.interface import *
 from public_rest.models import *
 from public_rest.adaptors import *
@@ -41,18 +41,26 @@ def on_MembershipPrefs_save(sender, **kwargs):
 #     The delete actions
 #   ######################
 
-@receiver(pre_delete, sender=Email)
 def before_Email_delete(sender, instance, **kwargs):
     user = instance.user
-    if user.email_set.count() == 1:
-        raise ValueError("Only email associated with user")
-
-@receiver(post_delete, sender=Email)
-def after_Email_delete(sender, instance, **kwargs):
-    user = instance.user
-    try:
-        preferred_email = user.preferred_email
-    except Email.DoesNotExist:
-        user.preferred_email = user.email_set.all()[0]
+    preferred = user.preferred_email
+    if kwargs.get('cascade') == False and preferred and instance.address == preferred.address:
+        if user.email_set.count() == 1:
+            raise ValueError("Only email associated with user")
+        email = user.email_set.exclude(address=preferred.address)[0]
+        user.preferred_email = email
+        user.backup=False
         user.save()
+
+sig_email.connect(before_Email_delete)
+
+@receiver(pre_delete, sender=User)
+def before_User_delete(sender, instance, **kwargs):
+    """
+    Set preferred_email to None so that
+    email deletion is simpler.
+    """
+    instance.preferred_email = None
+    instance.backup = False
+    instance.save()
 

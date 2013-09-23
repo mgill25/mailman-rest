@@ -258,7 +258,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             # Assuming membership is already related at the time of backup
             data['address'] = self.membership.address.address
             data['list_id'] = self.membership.fqdn_listname
-        if self.object_type == 'user':
+        if self.object_type == 'user' and self.backup:
             data['email'] = self.preferred_email.address
         return data
 
@@ -350,18 +350,19 @@ class AbstractRemotelyBackedObject(AbstractObject):
         changes to the remotely backed layer as well.
         """
         logger.info("Inside AbstractRemotelyBackedObject!")
-
-        backing_data = self.prepare_backing_data()
-        # handle object get/create
-        try:
-            if kwargs.get('created'):
-                self.create_backup(backing_data)
-            else:
-                self.patch_backup(backing_data)
-            super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
-        except MailmanConnectionError as e:
-            logger.info("Could not back up properly: {0}".format(e))
-
+        if self.backup:
+            backing_data = self.prepare_backing_data()
+            # handle object get/create
+            try:
+                if kwargs.get('created'):
+                    self.create_backup(backing_data)
+                else:
+                    self.patch_backup(backing_data)
+                super(AbstractRemotelyBackedObject, self).process_on_save_signal(sender, **kwargs)
+            except MailmanConnectionError as e:
+                logger.info("Could not back up properly: {0}".format(e))
+        else:
+            logger.warn("Backup Disabled")
 
 class AbstractRemotelyBackedDefault(AbstractRemotelyBackedObject):
     class Meta:

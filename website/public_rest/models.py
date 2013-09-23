@@ -9,7 +9,7 @@ from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from urllib2 import HTTPError
-
+from public_rest.signals import sig_email
 from public_rest.adaptors import *
 from public_rest.interface import *
 from public_rest.api import *
@@ -22,6 +22,7 @@ conn = Connection('%s/3.0/' % MAILMAN_API_URL)
 
 class BaseModel(models.Model):
     layer = 'rest'
+    backup = True
 
     class Meta:
         abstract = True
@@ -400,6 +401,11 @@ class Email(BaseModel):
         else:
             super(Email, self).save(*args, **kwargs)
 
+    def delete(self, using=None):
+        cascade=False
+        sig_email.send(sender=self.__class__, instance=self, cascade=False)
+        super(Email, self).delete(using=using)
+
     def __unicode__(self):
         return self.address
 
@@ -440,13 +446,16 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     created_on = models.DateTimeField(default=timezone.now)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    preferred_email = models.OneToOneField(Email, null=True,
-                                           related_name='%(class)s_preferred')
+    preferred_email = models.ForeignKey(Email,
+                                        blank=True,
+                                        null=True,
+                                        related_name='%(class)s_preferred')
 
     preferences = models.OneToOneField('UserPrefs', null=True)
 
     USERNAME_FIELD = 'display_name'
     REQUIRED_FIELDS = []
+    backup = True
 
     @property
     def emails(self):
@@ -494,6 +503,7 @@ class AbstractUser(BaseModel, AbstractBaseUser, PermissionsMixin):
             self.preferences = preferences
         else:
             super(AbstractUser, self).save(*args, **kwargs)
+
 
 
 class User(AbstractUser, AbstractRemotelyBackedObject):
