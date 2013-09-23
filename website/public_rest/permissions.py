@@ -3,7 +3,6 @@
 import logging
 from django.core.exceptions import PermissionDenied
 from public_rest.models import Membership
-from public_rest.global_permissions import *
 from rest_framework import permissions
 
 logger = logging.getLogger(__name__)

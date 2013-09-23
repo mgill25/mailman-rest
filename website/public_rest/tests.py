@@ -147,7 +147,10 @@ class ModelTest(TestCase):
         email = user.preferred_email
         email.delete()
         self.assertEqual(user.email_set.count(), 1)
+        user = User.objects.get(display_name='Test Admin')
         self.assertEqual(user.preferred_email.address, 'another_email@example.com')
+        user = User.objects.get(display_name='Test Admin')
+
 
     def test_preferred_email(self):
         u = User.objects.create(display_name='naeblis',

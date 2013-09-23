@@ -362,7 +362,7 @@ class AbstractRemotelyBackedObject(AbstractObject):
             except MailmanConnectionError as e:
                 logger.info("Could not back up properly: {0}".format(e))
         else:
-            logger.warn("Backup Disabled")
+            logger.warn("\nBackup Disabled!\n")
 
 class AbstractRemotelyBackedDefault(AbstractRemotelyBackedObject):
     class Meta:

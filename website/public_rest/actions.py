@@ -49,10 +49,10 @@ def before_Email_delete(sender, instance, **kwargs):
             raise ValueError("Only email associated with user")
         email = user.email_set.exclude(address=preferred.address)[0]
         user.preferred_email = email
-        user.backup=False
         user.save()
 
 sig_email.connect(before_Email_delete)
+
 
 @receiver(pre_delete, sender=User)
 def before_User_delete(sender, instance, **kwargs):
