@@ -452,6 +452,9 @@ class DRFTestCase(APILiveServerTestCase):
 
     def test_pagination_on_custom_endpoint(self):
         """All secondary/tertiary... endpoints should have paginated responses"""
+        #XXX NOT IMPLEMENTED YET! This requires that all the responses on endpoints exposed
+        #manually via @action and @link decorators etc should also have pagination enabled.
+
         # no members initially
         res = self.client.get('/api/lists/1/members/')
         self.assertEqual(res.status_code, 200)
