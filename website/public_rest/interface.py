@@ -364,18 +364,22 @@ class AbstractRemotelyBackedObject(AbstractObject):
         else:
             logger.warn("\nBackup Disabled!\n")
 
+
 class AbstractRemotelyBackedDefault(AbstractRemotelyBackedObject):
     class Meta:
         abstract = True
 
     def process_on_save_signal(self, sender, **kwargs):
-        backing_data = self.prepare_backing_data()
-        try:
-            if kwargs.get('created'):
-                # Don't back up anything, we already have defaults.
-                pass
-            else:
-                self.patch_backup(backing_data)
-        except MailmanConnectionError as e:
-            logger.info("Could not back up properly: {0}".format(e))
+        if self.backup:
+            backing_data = self.prepare_backing_data()
+            try:
+                if kwargs.get('created'):
+                    # Don't back up anything, we already have defaults.
+                    pass
+                else:
+                    self.patch_backup(backing_data)
+            except MailmanConnectionError as e:
+                logger.info("Could not back up properly: {0}".format(e))
+        else:
+            logger.warn("\nBackup Disabled!\n")
 
