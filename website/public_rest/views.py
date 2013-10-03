@@ -425,17 +425,20 @@ class MailingListViewSet(BaseModelViewSet):
                                                     context={'request': request})
             return Response(serializer.data, status=201)
 
-    @action(methods=['GET', 'POST'], permission_classes=[ListMembersPolicy])
+    @action(methods=['GET', 'POST'], permission_classes=[ListMembersPolicy],
+                                     serializer_class=MembershipDetailSerializer)
     def members(self, request, *args, **kwargs):
         kwargs['role'] = 'member'
         return self._add_membership(request, *args, **kwargs)
 
-    @action(methods=['GET', 'POST'], permission_classes=[ListModeratorsPolicy])
+    @action(methods=['GET', 'POST'], permission_classes=[ListModeratorsPolicy],
+                                     serializer_class=MembershipDetailSerializer)
     def moderators(self, request, *args, **kwargs):
         kwargs['role'] = 'moderator'
         return self._add_membership(request, *args, **kwargs)
 
-    @action(methods=['GET', 'POST'], permission_classes=[ListOwnerPolicy])
+    @action(methods=['GET', 'POST'], permission_classes=[ListOwnerPolicy],
+                                     serializer_class=MembershipDetailSerializer)
     def owners(self, request, *args, **kwargs):
         kwargs['role'] = 'owner'
         return self._add_membership(request, *args, **kwargs)
