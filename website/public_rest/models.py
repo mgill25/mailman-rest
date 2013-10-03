@@ -288,7 +288,7 @@ class AbstractMailingList(AbstractBaseList, CoreListMixin, LocalListMixin):
         else:
             email = u.email_set.get(address=address)
         # Make a subscription relationship
-        s = self.membership_set.create(user=u, address=email, role=role)
+        s, created = self.membership_set.get_or_create(user=u, address=email, role=role)
         return s
 
     def unsubscribe(self, address):
