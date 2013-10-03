@@ -168,6 +168,7 @@ class EmailViewSet(BaseModelViewSet):
         else:
             return Response("Unverified!", status=204)
 
+
 class EmailPrefsViewSet(BaseModelViewSet):
     """Email Preferences"""
     queryset = EmailPrefs.objects.all()
@@ -263,6 +264,7 @@ class MembershipViewSet(BaseModelViewSet):
             return Response("Failed", status=500)
         else:
             return Response(status=204)
+
 
 class MembershipPrefsViewSet(BaseModelViewSet):
     queryset = Membership.objects.get_query_set()
