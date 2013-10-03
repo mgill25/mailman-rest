@@ -393,11 +393,12 @@ class MailingListViewSet(BaseModelViewSet):
             address = request.DATA.get('address', None)
             display_name = request.DATA.get('user', None)
             user = request.user
+            default_addr = None
 
             # Check if user is an owner or mod
             is_list_staff = utils.is_list_staff(user, mlist)
-            if address is None and display_name is None:
-                address = user.preferred_email.address
+            if not address and not display_name:
+                default_addr = user.preferred_email.address
 
             if address and display_name:
                 u = get_object_or_404(User, display_name=display_name)
@@ -409,9 +410,11 @@ class MailingListViewSet(BaseModelViewSet):
                     return Response('Email address is not related to User', status=400)
 
             if address and not display_name:
-                user_addresses = [email.address for email in user.emails]
-                if not is_list_staff and address not in user_addresses:
-                    return Response('Email address not associated with you', status=403)
+                # only staff members can add arbitrary addresses
+                if not is_list_staff:
+                    user_addresses = [email.address for email in user.emails]
+                    if address not in user_addresses:
+                        return Response('Email address not associated with you', status=403)
 
             elif display_name and not address:
                 u = get_object_or_404(User, display_name=display_name)
@@ -419,6 +422,7 @@ class MailingListViewSet(BaseModelViewSet):
                     return Response('You are not the user for the given display name', status=403)
                 address = u.preferred_email.address
 
+            address = address or default_addr
             logger.debug("Address: {0}".format(address))
             qset = getattr(mlist, 'add_{0}'.format(role))(address)
             serializer = MembershipDetailSerializer(qset,
