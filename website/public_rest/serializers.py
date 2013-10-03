@@ -20,6 +20,16 @@ class _PartialEmailSerializer(serializers.HyperlinkedModelSerializer):
         model = Email
         fields = ('url', 'address')
 
+class MembershipInputSerializer(serializers.HyperlinkedModelSerializer):
+    """Helper serializer for the benefit of DRF's browserable API"""
+    mlist = serializers.RelatedField()
+    user = serializers.CharField()
+    address = serializers.CharField()
+
+    class Meta:
+        model = Membership
+        fields = ('address', 'user', 'mlist',)
+
 #################################################################
 
 # Primary Model Serializers
