@@ -30,7 +30,7 @@ class UserViewSet(BaseModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    queryset = User.objects.all()
+    queryset = User.objects.get_query_set()
     serializer_class = UserSerializer
     permission_classes = [UserViewPolicy]
 
@@ -122,7 +122,7 @@ class UserViewSet(BaseModelViewSet):
 
 
 class EmailViewSet(BaseModelViewSet):
-    queryset = Email.objects.all()
+    queryset = Email.objects.get_query_set()
     serializer_class = EmailSerializer
     filter_fields = ('user', 'address', 'verified',)
     permission_classes = [EmailViewPolicy]
@@ -171,7 +171,7 @@ class EmailViewSet(BaseModelViewSet):
 
 class EmailPrefsViewSet(BaseModelViewSet):
     """Email Preferences"""
-    queryset = EmailPrefs.objects.all()
+    queryset = EmailPrefs.objects.get_query_set()
     serializer_class = EmailPreferenceSerializer
     permission_classes = [EmailPreferencePolicy]
 
@@ -201,7 +201,7 @@ class EmailPrefsViewSet(BaseModelViewSet):
 
 class MembershipViewSet(BaseModelViewSet):
 
-    queryset = Membership.objects.all()
+    queryset = Membership.objects.get_query_set()
     serializer_class = MembershipListSerializer
     permission_classes = [MembershipViewPolicy]    #TODO User can unsubscribe from his lists
     filter_fields = ('role', 'user',)
@@ -307,7 +307,7 @@ class MembershipPrefsViewSet(BaseModelViewSet):
 
 class MailingListViewSet(BaseModelViewSet):
 
-    queryset = MailingList.objects.all()
+    queryset = MailingList.objects.get_query_set()
     serializer_class = MailingListSerializer
     #filter_fields = ('list_name', 'fqdn_listname', 'mail_host',)
 
@@ -444,7 +444,7 @@ class MailingListViewSet(BaseModelViewSet):
     def memberships(self, request, *args, **kwargs):
         """All memberships"""
         mlist = self.get_object()
-        qset = mlist.membership_set.all()
+        qset = mlist.membership_set.get_query_set()
         if qset and qset.exists():
             qset = self.make_paginator(request, qset)
             serializer = MembershipDetailSerializer(qset,
@@ -473,7 +473,7 @@ class MailingListViewSet(BaseModelViewSet):
 
 
 class ListSettingsViewSet(BaseModelViewSet):
-    queryset = ListSettings.objects.all()
+    queryset = ListSettings.objects.get_query_set()
     serializer_class = ListSettingsSerializer
     permission_classes = [ListSettingsPolicy]
 
@@ -505,7 +505,7 @@ class ListSettingsViewSet(BaseModelViewSet):
 
 
 class DomainViewSet(BaseModelViewSet):
-    queryset = Domain.objects.all()
+    queryset = Domain.objects.get_query_set()
     serializer_class = DomainSerializer
     permission_classes = [DomainViewPolicy]
 
