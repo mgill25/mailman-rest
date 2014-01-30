@@ -1,5 +1,7 @@
+=====
 TODO
-====
+=====
+
 
 1. As far as models are concerned, have to figure out what specific operations `MM-Core`
    allows us to do. Creating `domain` is allowed, but updating it isn't.
@@ -22,7 +24,10 @@ TODO
 5. DRF - Status Codes should be returned via rest_framework.status, not direct
    ints.
 
+
+Other
 -----
+
 1. `partial_URL` and `path` issues during the connection time.
 
 2. Resources should only have ONE representation -- `foo@bar.com` and
