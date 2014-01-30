@@ -1,5 +1,5 @@
-MM-REST
-=======
+Mailman-REST
+============
 
 This application was part of the work done by me as part of [Google Summer of Code 2013](https://www.google-melange.com/gsoc/homepage/google/gsoc2013) for [Mailman 3](http://wiki.list.org/display/DEV/Mailman+3.0) under the [Python Software Foundation](http://www.python.org/psf/)
 
