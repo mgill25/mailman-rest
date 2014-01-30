@@ -6,7 +6,7 @@ Abstract
 --------
 
 This application tries to address the problems/lack of features in the Mailman Core API,
-which include a better way to represet Users, a way to handle authentication/authorization
+which include a better way to represent Users, a way to handle authentication/authorization
 in the API, extensible entities in the system. We use Django models which can act independently 
 without any connection to the Core, and use DRF to expose them. We also take care of syncing those
 models with their corresponding entities at the Core database.
@@ -48,7 +48,7 @@ The API design tries to address the following points:
         * The representations need to be extensible without requiring every module to support 
           information that it does not need to handle.
 
-        * Thee interface needs to follow the REST design aspects of cacheable and omnipotent operations
+        * The interface needs to follow the REST design aspects of cacheable and omnipotent operations
         
         * Each component should be able to operate (perhaps with reduced capability) in the absence 
           of a connection to other components.
@@ -68,7 +68,7 @@ The REST API has various elements, which we discuss here:
           models will also need to be able to communicate with the Mailman Core, and sync 
           any changes they might have. This job is done via an interface to the Core,
           which uses the Internal Core API to interact with the database. Any information 
-          that we get from the core interface is wrapped up in proxy objects, which are called *Peer* objects.
+          that we get from the core interface is wrapped up in proxy objects, which are called *Adaptor* objects.
 
         * **DRF**: The Django REST Framework [2]_ is used to actually expose the models. 
           It is a mature, highly extensible framework providing features like browserable API, 

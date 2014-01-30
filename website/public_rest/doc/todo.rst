@@ -16,13 +16,10 @@ TODO
 3. Make API lookup generic. A `pk` that, if changes, will also affect lookups
    in the related models. See: `ListSettingsViewSet.get_object`.
 
-4. Preferred_email automatic replacement if deleted; don't delete the last
-   remaining email address.
-
-5. DRF - Pagination for secndary endpoint responses, either from the `@action` decorator
+4. DRF - Pagination for secndary endpoint responses, either from the `@action` decorator
    or manually hooked up to the URLConf.
 
-6. DRF - Status Codes should be returned via rest_framework.status, not direct
+5. DRF - Status Codes should be returned via rest_framework.status, not direct
    ints.
 
 -----

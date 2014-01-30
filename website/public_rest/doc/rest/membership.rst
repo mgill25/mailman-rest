@@ -199,6 +199,17 @@ Allow: GET, POST, HEAD, OPTIONS
     }
 }
 
+We can also subscribe to lists using a ``User``.
+
+ - If we provide only a user's display_name, her preferred email address is used for subscription.
+
+ - If we provide an address as well, it is first checked to be associated with the User,
+   and only then subscribed.
+
+ - If we do not provide any address or display_name, the subscription is created with the logged-in
+   user's preferred address.
+
+
 Unsubscribe from Lists
 ----------------------
 
